@@ -6,20 +6,45 @@ An invite and RSVP site for Friendsgiving on **Sunday, Nov 22**. Friends RSVP, v
 - `api/state.js`: `GET`, returns the event details and every RSVP
 - `api/rsvp.js`: `POST`, saves a guest's own RSVP
 - `api/event.js`: `POST`, host-only actions (needs the host password)
-- `api/_store.js`: shared helpers and the database connection (Upstash Redis)
+- `api/_store.js`: shared helpers and the connection to the Google Sheet
+- `google-apps-script/Code.gs`: a small script you paste into your Google Sheet so the site can read and write it
 
-No build step and no npm packages.
+No build step and no npm packages. All RSVPs land in a Google Sheet you own, one row per guest, so you can read them there any time.
+
+## Set up the Google Sheet
+
+1. **Create a sheet.** Go to [sheets.new](https://sheets.new) and name it something like "Friendsgiving RSVPs".
+2. **Add the script.** In the sheet, open **Extensions → Apps Script**. Delete what's there and paste in the whole of `google-apps-script/Code.gs` from this repo.
+3. **Pick a secret.** On the line `const SECRET = "PASTE-…"`, replace the text inside the quotes with a long random string (at least 30 letters and numbers; a password generator works well). Keep it handy for step 7. Click **Save** (the disk icon).
+4. **Deploy it as a web app.** Click **Deploy → New deployment**, click the gear next to "Select type" and choose **Web app**. Set:
+   - **Execute as:** Me
+   - **Who has access:** Anyone
+
+   Click **Deploy**. Google asks you to authorize access: choose your account, then **Advanced → Go to (project name)** and **Allow**. This lets the script edit *your* sheet.
+5. **Copy the Web app URL.** It ends in `/exec`.
+
+The script's URL only works with your secret, so "Anyone" here doesn't let strangers read your sheet. The `RSVPs` and `Event` tabs appear by themselves after the first RSVP.
+
+> If you edit the script later, use **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**, so the URL stays the same.
 
 ## Deploy on Vercel
 
-1. **Import the repo.** In Vercel, go to **Add New → Project** and import this GitHub repo. Leave Framework Preset as **Other** and leave the build settings empty. Click **Deploy**.
-2. **Add the database.** In the project, open **Storage → Create Database** (or **Marketplace**), choose **Upstash → Redis** on the free plan and connect it to this project. This adds the `KV_REST_API_URL` and `KV_REST_API_TOKEN` environment variables automatically.
-3. **Set your host password.** Go to **Settings → Environment Variables** and add `HOST_PASSWORD` with a password only you know.
-4. **Redeploy.** Go to **Deployments → ⋯ → Redeploy** so the new variables take effect.
+6. **Import the repo.** In Vercel, go to **Add New → Project** and import this GitHub repo. Leave Framework Preset as **Other** and the build settings empty.
+7. **Add three environment variables** (during import, or later under **Settings → Environment Variables**):
 
-Then open your `*.vercel.app` URL. If the page says the database isn't connected, step 2 or 4 didn't take.
+   | Name | Value |
+   |---|---|
+   | `SHEET_WEBAPP_URL` | the Web app URL from step 5 |
+   | `SHEET_SECRET` | the same secret you put in the script in step 3 |
+   | `HOST_PASSWORD` | a password only you know, to unlock the host panel |
+
+8. **Deploy** (or, if it was already deployed, **Deployments → ⋯ → Redeploy** so the variables take effect).
+
+Open your `*.vercel.app` URL and RSVP yourself as a test. A row should appear in the `RSVPs` tab of your sheet. If the page shows an error instead, it explains which step to check.
 
 > Vercel deploys your repo's production branch. If your site only shows up as a "Preview" deployment, set **Settings → Git → Production Branch** to the branch this code is on, or merge it into `main`.
+
+> If you used Upstash Redis before, you can remove it from the project. The site no longer uses it.
 
 ## Using it
 
@@ -31,11 +56,13 @@ Then open your `*.vercel.app` URL. If the page says the database isn't connected
   - remove an RSVP with the × next to a guest's name (you also see their dietary notes)
   - **Reopen voting** if plans change
 
-To change the time options or potluck categories, edit `SLOTS` / `CATS` in `index.html` **and** `SLOT_IDS` / `CAT_IDS` in `api/_store.js`.
+You can also fix things directly in the sheet, like a typo in someone's dish. Don't change the `ID` or `Edit key` columns, and keep times, categories and statuses spelled as the site writes them.
+
+To change the time options or potluck categories, edit `SLOTS` / `CATS` in `index.html` **and** in `api/_store.js`.
 
 ## Run locally
 
-Without database variables, the API keeps data in memory, which is handy for trying things out:
+Without the sheet variables, the API keeps data in memory, which is handy for trying things out:
 
 ```bash
 npm i -g vercel

@@ -1,96 +1,141 @@
 // Shared helpers for the API routes. Files starting with "_" are not deployed as routes.
+// Data lives in a Google Sheet, reached through the Apps Script web app in google-apps-script/Code.gs.
 import crypto from "node:crypto";
 
-export const SLOT_IDS = ["12", "13", "14", "15", "16"];
-export const CAT_IDS = ["main", "side", "dessert", "app", "drink", "supply"];
-export const STATUSES = ["yes", "maybe", "no"];
-const MAX_RSVPS = 200;
+export const SLOTS = { "12": "12:00 PM", "13": "1:00 PM", "14": "2:00 PM", "15": "3:00 PM", "16": "4:00 PM" };
+export const CATS = { main: "Mains", side: "Sides", dessert: "Desserts", app: "Snacks & starters", drink: "Drinks", supply: "Supplies" };
+export const STATUSES = { yes: "Coming", maybe: "Maybe", no: "Can't make it" };
+export const SLOT_IDS = Object.keys(SLOTS);
+export const CAT_IDS = Object.keys(CATS);
+export const MAX_RSVPS = 200;
+export const ID_RE = /^[A-Za-z0-9]{8,40}$/;
 
-const RSVP_KEY = "fg:rsvps";
-const EVENT_KEY = "fg:event";
+const RSVP_SHEET = "RSVPs";
+const RSVP_HEADER = ["ID", "Name", "Status", "Party size", "Times that work", "Bringing", "Dish", "Dietary notes", "First RSVP", "Last updated", "Edit key (do not change)"];
+const EVENT_SHEET = "Event";
+const EVENT_HEADER = ["Setting", "Value"];
 
-// Vercel's Upstash Redis integration sets KV_REST_API_*; a direct Upstash setup uses UPSTASH_REDIS_REST_*.
-const DB_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const DB_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-const hasDb = Boolean(DB_URL && DB_TOKEN);
+const SHEET_URL = process.env.SHEET_WEBAPP_URL;
+const SHEET_SECRET = process.env.SHEET_SECRET;
+const hasSheet = Boolean(SHEET_URL && SHEET_SECRET);
 
-// Local development without a database keeps data in memory.
-const mem = globalThis.__fgMem || (globalThis.__fgMem = { rsvps: new Map(), event: null });
+// Local development without a sheet keeps data in memory.
+const mem = globalThis.__fgMem || (globalThis.__fgMem = { rsvps: new Map(), event: {} });
 
 export class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
 
-function requireDb() {
-  if (!hasDb && process.env.VERCEL) {
-    throw new HttpError(503, "The database isn't connected yet. In Vercel, add Upstash Redis under Storage and redeploy.");
+/* ---------- Google Sheet transport ---------- */
+async function sheet(body) {
+  if (!hasSheet) {
+    if (process.env.VERCEL) throw new HttpError(503, "The Google Sheet isn't connected yet. Add SHEET_WEBAPP_URL and SHEET_SECRET in Vercel and redeploy.");
+    return null;
   }
-}
-
-async function redis(command) {
-  const r = await fetch(DB_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${DB_TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify(command),
-  });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok || j.error) throw new HttpError(502, "Database error: " + (j.error || r.status));
-  return j.result;
-}
-
-export async function getRsvps() {
-  requireDb();
-  if (!hasDb) return Object.fromEntries([...mem.rsvps].map(([k, v]) => [k, JSON.parse(v)]));
-  const flat = (await redis(["HGETALL", RSVP_KEY])) || [];
-  const out = {};
-  for (let i = 0; i < flat.length; i += 2) {
-    try { out[flat[i]] = JSON.parse(flat[i + 1]); } catch { /* skip corrupt row */ }
+  let r;
+  try {
+    r = await fetch(SHEET_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ secret: SHEET_SECRET, ...body }),
+      redirect: "follow",
+    });
+  } catch {
+    throw new HttpError(502, "Couldn't reach the Google Sheet. Try again in a moment.");
   }
-  return out;
+  const text = await r.text();
+  let j;
+  try { j = JSON.parse(text); } catch {
+    throw new HttpError(502, "Google sent back a web page instead of data. In the Apps Script deployment, set 'Who has access' to 'Anyone' and check SHEET_WEBAPP_URL ends in /exec.");
+  }
+  if (j.error) throw new HttpError(502, j.error);
+  return j;
 }
 
-export async function getRsvp(id) {
-  requireDb();
-  if (!hasDb) { const v = mem.rsvps.get(id); return v ? JSON.parse(v) : null; }
-  const v = await redis(["HGET", RSVP_KEY, id]);
-  return v ? JSON.parse(v) : null;
+/* ---------- row <-> object ---------- */
+const key = (map, label) => Object.keys(map).find((k) => map[k] === String(label).trim()) || "";
+const iso = (ms) => (ms ? new Date(ms).toISOString().replace("T", " ").slice(0, 19) + " UTC" : "");
+const fromIso = (s) => { const t = Date.parse(String(s).replace(" UTC", "Z").replace(" ", "T")); return Number.isFinite(t) ? t : 0; };
+
+function rsvpToRow(id, r) {
+  return [id, r.name, STATUSES[r.status] || r.status, String(r.party || 1),
+    (r.times || []).map((t) => SLOTS[t]).filter(Boolean).join(", "),
+    CATS[r.cat] || "", r.dish || "", r.diet || "", iso(r.createdAt), iso(r.updatedAt), r.secretHash || ""];
+}
+function rowToRsvp(row) {
+  const [id, name, status, party, times, cat, dish, diet, created, updated, secretHash] = row.map((v) => String(v ?? ""));
+  return [id.trim(), {
+    name: name.trim(),
+    status: key(STATUSES, status) || (status in STATUSES ? status : "yes"),
+    party: Math.min(9, Math.max(1, parseInt(party, 10) || 1)),
+    times: times.split(",").map((t) => key(SLOTS, t)).filter(Boolean),
+    cat: key(CATS, cat),
+    dish: dish.trim(),
+    diet: diet.trim(),
+    createdAt: fromIso(created),
+    updatedAt: fromIso(updated),
+    secretHash: secretHash.trim(),
+  }];
+}
+function eventToRows(e) {
+  return [
+    ["Start time", SLOTS[e.time] || ""],
+    ["Dinner time", e.dinner || ""],
+    ["Address", e.address || ""],
+    ["Note", e.note || ""],
+    ["Invite sent", e.final ? "Yes" : "No"],
+    ["Last updated", iso(e.updatedAt)],
+  ];
+}
+function rowsToEvent(rows) {
+  const m = Object.fromEntries(rows.map((r) => [String(r[0]).trim(), String(r[1] ?? "")]));
+  if (!rows.length) return {};
+  return {
+    time: key(SLOTS, m["Start time"] || ""),
+    dinner: m["Dinner time"] || "",
+    address: m["Address"] || "",
+    note: m["Note"] || "",
+    final: /^(yes|true)$/i.test(m["Invite sent"] || ""),
+    updatedAt: fromIso(m["Last updated"] || ""),
+  };
 }
 
-export async function countRsvps() {
-  requireDb();
-  if (!hasDb) return mem.rsvps.size;
-  return Number(await redis(["HLEN", RSVP_KEY])) || 0;
+/* ---------- store API used by the routes ---------- */
+// One round trip: every RSVP and the event settings.
+export async function loadAll() {
+  const j = await sheet({ op: "read", sheets: [{ name: RSVP_SHEET, header: RSVP_HEADER }, { name: EVENT_SHEET, header: EVENT_HEADER }] });
+  if (!j) return { rsvps: Object.fromEntries(mem.rsvps), event: { ...mem.event } };
+  const rsvps = {};
+  for (const row of j.data[RSVP_SHEET] || []) {
+    const [id, r] = rowToRsvp(row);
+    if (id) rsvps[id] = r;
+  }
+  return { rsvps, event: rowsToEvent(j.data[EVENT_SHEET] || []) };
 }
 
-export async function putRsvp(id, data) {
-  requireDb();
-  const v = JSON.stringify(data);
-  if (!hasDb) { mem.rsvps.set(id, v); return; }
-  await redis(["HSET", RSVP_KEY, id, v]);
+export async function putRsvp(id, r) {
+  const j = await sheet({ op: "upsert", sheet: RSVP_SHEET, header: RSVP_HEADER, row: rsvpToRow(id, r) });
+  if (!j) mem.rsvps.set(id, r);
 }
 
 export async function deleteRsvp(id) {
-  requireDb();
-  if (!hasDb) { mem.rsvps.delete(id); return; }
-  await redis(["HDEL", RSVP_KEY, id]);
+  const j = await sheet({ op: "delete", sheet: RSVP_SHEET, header: RSVP_HEADER, id });
+  if (!j) mem.rsvps.delete(id);
 }
 
-export async function getEvent() {
-  requireDb();
-  if (!hasDb) return mem.event ? JSON.parse(mem.event) : {};
-  const v = await redis(["GET", EVENT_KEY]);
-  return v ? JSON.parse(v) : {};
+export async function putEvent(e) {
+  const j = await sheet({ op: "replace", sheet: EVENT_SHEET, header: EVENT_HEADER, rows: eventToRows(e) });
+  if (!j) mem.event = { ...e };
 }
 
-export async function putEvent(data) {
-  requireDb();
-  const v = JSON.stringify(data);
-  if (!hasDb) { mem.event = v; return; }
-  await redis(["SET", EVENT_KEY, v]);
+export function publicState({ rsvps, event }) {
+  return {
+    event,
+    rsvps: Object.entries(rsvps).map(([id, { secretHash, ...rest }]) => ({ id, ...rest })),
+  };
 }
 
-export { MAX_RSVPS };
-
+/* ---------- misc helpers ---------- */
 export const hashSecret = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
 
 export function checkHostPassword(given) {
@@ -101,8 +146,10 @@ export function checkHostPassword(given) {
   if (!crypto.timingSafeEqual(a, b)) throw new HttpError(401, "That's not the host password.");
 }
 
-export const str = (v, max) => String(v ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, max);
-export const multiline = (v, max) => String(v ?? "").replace(/\r/g, "").replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, " ").trim().slice(0, max);
+// Strip control characters and anything that could make a sheet cell a formula.
+const noFormula = (s) => s.replace(/^[=+\-@\s]+/, "");
+export const str = (v, max) => noFormula(String(v ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").trim()).slice(0, max);
+export const multiline = (v, max) => noFormula(String(v ?? "").replace(/\r/g, "").replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, " ").trim()).slice(0, max);
 
 export async function readBody(req) {
   if (req.body && typeof req.body === "object") return req.body;
@@ -113,10 +160,10 @@ export async function readBody(req) {
   try { return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}"); } catch { return {}; }
 }
 
-export function send(res, status, obj) {
+export function send(res, status, obj, cache = "no-store") {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Cache-Control", cache);
   res.end(JSON.stringify(obj));
 }
 
@@ -128,9 +175,4 @@ export function route(fn) {
       else { console.error(e); send(res, 500, { error: "Something went wrong on the server." }); }
     }
   };
-}
-
-export function publicRsvp(id, r) {
-  const { secretHash, ...rest } = r;
-  return { id, ...rest };
 }

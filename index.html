@@ -445,16 +445,23 @@ function copy(text,el,ok){
 }
 
 /* ---------- load + poll ---------- */
-async function load(){
-  try{
-    const st=await api("/api/state");
+function applyState(st){
     S.cfg=st.event||{};S.rsvps=new Map((st.rsvps||[]).map(r=>[r.id,r]));S.loaded=true;banner("");
     const mine=S.rsvps.get(S.myId);
     if(mine){$("#editLink").hidden=false;$("#editUrl").textContent=editUrl();}
     if(!S.prefilled&&!S.dirty&&mine){S.prefilled=true;prefill(mine);}
     renderAll();
-  }catch(e){banner(e.status===503?e.message:"Couldn't load the latest RSVPs. Retrying…");}
 }
+async function load(){
+  if(S.saving)return;
+  try{
+    // Right after this browser saves something, skip the few-second shared cache.
+    const fresh=Date.now()-(S.wroteAt||0)<15000?`?fresh=${Date.now()}`:"";
+    const st=await api("/api/state"+fresh);
+    if(!S.saving)applyState(st);
+  }catch(e){if(!S.loaded||e.status===503||e.status===502)banner(e.status>=500&&e.status<600&&e.message?e.message:"Couldn't load the latest RSVPs. Retrying…");}
+}
+async function write(path,data){S.saving=true;try{const st=await api(path,data);S.wroteAt=Date.now();if(st.rsvps)applyState(st);return st;}finally{S.saving=false;}}
 load();
 setInterval(()=>{if(document.visibilityState==="visible")load()},10000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")load()});
@@ -478,14 +485,13 @@ $("#rsvp").addEventListener("submit",async e=>{
   if(!status){note.textContent="Pick Count me in, Maybe, or Can't make it.";return}
   if(status!=="no"&&!S.cfg.final&&!times.length){note.textContent="Pick at least one time that works for you.";return}
   if(status!=="no"&&!cat){note.textContent="Choose what you'll bring.";return}
-  note.textContent="";const btn=$("#saveBtn");btn.disabled=true;
+  note.textContent="";const btn=$("#saveBtn");btn.disabled=true;btn.textContent="Saving…";
   try{
-    await api("/api/rsvp",{id:S.myId,secret:S.secret,name,status,party:+$("#party").value||1,times,cat,dish,diet:$("#diet").value.trim()});
+    await write("/api/rsvp",{id:S.myId,secret:S.secret,name,status,party:+$("#party").value||1,times,cat,dish,diet:$("#diet").value.trim()});
     S.dirty=false;S.prefilled=true;$("#saveBtn").textContent="Update my RSVP";
     toast(status==="yes"?"You're on the list. See you Sunday!":status==="maybe"?"Saved as a maybe. Let us know soon!":"Got it. We'll miss you!");
     if(status!=="no"){const r=btn.getBoundingClientRect();burst(r.left+r.width/2,r.top);}
-    await load();
-  }catch(err){note.textContent=err.message;}
+  }catch(err){note.textContent=err.message;$("#saveBtn").textContent=S.rsvps.has(S.myId)?"Update my RSVP":"Save my RSVP";}
   finally{btn.disabled=false;}
 });
 $("#copyEdit").addEventListener("click",()=>copy(editUrl(),$("#editUrl"),"Copied. Keep it somewhere safe."));
@@ -503,19 +509,19 @@ if(new URLSearchParams(location.search).has("host"))$("#loginCard").hidden=false
 
 async function saveCfg(patch){
   const cfg={password:S.hostPw,action:"save",time:$("#hTime").value,dinner:$("#hDinner").value.trim(),address:$("#hAddr").value.trim(),note:$("#hNote").value.trim(),final:!!S.cfg.final,...patch};
-  const r=await api("/api/event",cfg);S.cfg=r.event;renderAll();
+  await write("/api/event",cfg);
 }
 $("#sendBtn").addEventListener("click",async()=>{
-  const b=$("#sendBtn");b.disabled=true;
+  const b=$("#sendBtn");b.disabled=true;b.textContent="Sending…";
   try{await saveCfg({final:true});toast("Invite sent. Everyone sees it at the top of the page.");window.scrollTo({top:0,behavior:"smooth"});burst(innerWidth/2,120);}
-  catch(e){toast(e.message);}finally{b.disabled=false}
+  catch(e){toast(e.message);}finally{b.disabled=false;renderHost();}
 });
 $("#reopenBtn").addEventListener("click",async()=>{try{await saveCfg({final:false});toast("Voting is open again.")}catch(e){toast(e.message)}});
 $("#copyBtn").addEventListener("click",()=>copy($("#msg").textContent,$("#msg"),"Copied. Paste it in the group chat!"));
 $("#guests").addEventListener("click",async e=>{
   const id=e.target.closest("[data-del]")?.dataset.del;if(!id||!S.hostPw)return;
   const p=S.rsvps.get(id);if(!confirm(`Remove ${p?p.name:"this guest"}'s RSVP?`))return;
-  try{await api("/api/event",{password:S.hostPw,action:"deleteRsvp",id});toast("RSVP removed.");load();}catch(err){toast(err.message)}
+  try{await write("/api/event",{password:S.hostPw,action:"deleteRsvp",id});toast("RSVP removed.");}catch(err){toast(err.message)}
 });
 
 /* ---------- falling leaves ---------- */
