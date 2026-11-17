@@ -1,6 +1,6 @@
 # Friendsgiving 2026 🍂
 
-An invite and RSVP site for Friendsgiving on **Sunday, Nov 22**. Friends RSVP, vote on a start time and claim a dish for the potluck. When you're ready, you lock in the time, add the address and send the final invite.
+An invite and RSVP site for Friendsgiving on **Sunday, Nov 22, 4:00–8:00 PM**. Friends RSVP and claim a dish for the potluck. When you're ready, you add the address and send the final invite.
 
 - `index.html`: the whole page (design, animations, form and host panel)
 - `api/state.js`: `GET`, returns the event details and every RSVP
@@ -31,15 +31,15 @@ To see the RSVPs in Supabase, open **Table Editor** and pick `fg_guest_list` (or
 
 - **Guests** just open the link. Their browser remembers their RSVP. After saving, they get a personal edit link they can use to update it from another device.
 - **You (the host):** click **I'm the host** at the bottom of the page (or open `/?host`) and enter `HOST_PASSWORD`. You can then:
-  - pick the final start time (vote counts are shown next to each option), dinner time, address and a note
+  - add the dinner time, address and a note
   - press **Send the final invite**: everyone now sees the invitation card at the top of the page, with calendar buttons
   - copy the ready-made group-chat message
   - remove an RSVP with the × next to a guest's name (you also see their dietary notes)
-  - **Reopen voting** if plans change
+  - **Take the invite down** if plans change
 
 You can also fix things directly in Supabase's Table Editor (`fg_rsvps`), like a typo in someone's dish. Don't change the `id` or `secret_hash` columns.
 
-To change the time options or potluck categories, edit `SLOTS` / `CATS` in `index.html` **and** `SLOT_IDS` / `CAT_IDS` in `api/_store.js`.
+To change the party time, edit `START`, `END` and `TIME_LABEL` near the top of the script in `index.html` (and the hero chip text `4–8 PM`). To change the potluck categories, edit `CATS` in `index.html` **and** `CAT_IDS` in `api/_store.js`.
 
 ## Run locally
 

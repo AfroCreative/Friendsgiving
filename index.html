@@ -107,15 +107,6 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 .note{font-size:14px;color:var(--muted)}
 
-/* tally */
-.tally{display:flex;flex-direction:column;gap:12px}
-.bar{display:grid;grid-template-columns:86px 1fr 34px;gap:12px;align-items:center}
-.bar .t{font-family:var(--f-mono);font-size:14px}
-.bar .track{height:14px;border-radius:999px;background:var(--night);border:1px solid var(--line);overflow:hidden}
-.bar .fill{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--pumpkin),var(--marigold));transition:width .8s cubic-bezier(.2,.8,.2,1)}
-.bar.lead .t{color:var(--marigold)}
-.bar .n{font-family:var(--f-mono);font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
-.bar .who{grid-column:2/4;font-size:13px;color:var(--muted);margin-top:-6px;min-width:0}
 
 /* potluck board */
 .board{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
@@ -191,9 +182,9 @@ body{margin:0}
     <h1 id="title" aria-label="Friendsgiving">Friendsgiving</h1>
     <div class="datechip">
       <span class="chip"><b>SUN</b> Nov 22, 2026</span>
-      <span class="chip" id="timeChip"><b>Afternoon</b> · time TBD</span>
+      <span class="chip" id="timeChip"><b>4–8 PM</b></span>
     </div>
-    <p class="lede">Good food, better people. Tell us you're coming, vote on a start time, and claim a dish so we don't end up with six bowls of mashed potatoes.</p>
+    <p class="lede">Good food, better people. Tell us you're coming and claim a dish so we don't end up with six bowls of mashed potatoes.</p>
     <div class="countdown" aria-label="Countdown to Friendsgiving">
       <div><strong id="cd-d">–</strong><span>days</span></div>
       <div><strong id="cd-h">–</strong><span>hrs</span></div>
@@ -217,13 +208,7 @@ body{margin:0}
       <label class="pick st-no"><input type="radio" name="status" value="no" id="st-no"><span>Can't make it</span></label>
     </div>
 
-    <div id="timeBlock" style="display:flex;flex-direction:column;gap:12px">
-      <div class="step"><span class="num">2</span><h2>When works for you?</h2></div>
-      <p class="sub">Pick every start time you could make on Sunday. The most popular one wins.</p>
-      <div class="picks" id="timePicks"></div>
-    </div>
-
-    <div class="step"><span class="num" id="dishNum">3</span><h2>What are you bringing?</h2></div>
+    <div class="step"><span class="num">2</span><h2>What are you bringing?</h2></div>
     <p class="sub">Choose a category, then name the dish. The dots show how many we still need.</p>
     <div class="cats" id="catPicks"></div>
     <div><label class="lbl" for="dish">The dish (or item)</label><input id="dish" type="text" maxlength="60" placeholder="e.g. Grandma's sweet potato pie"></div>
@@ -239,11 +224,6 @@ body{margin:0}
       <div class="actions"><button class="btn ghost" type="button" id="copyEdit">Copy my edit link</button></div>
     </div>
   </form>
-
-  <section class="card" id="pollCard">
-    <h2>Time poll</h2>
-    <div class="tally" id="tally"></div>
-  </section>
 
   <section class="card">
     <h2>The potluck board</h2>
@@ -270,16 +250,13 @@ body{margin:0}
   <section class="card host" id="hostCard" hidden>
     <span class="tag">Host only</span>
     <h2>Lock it in and send the invite</h2>
-    <p class="sub">Pick the final time and add the address. When you send it, everyone who opens this page sees the final invitation at the top.</p>
-    <div class="grid2">
-      <div><label class="lbl" for="hTime">Start time</label><select id="hTime"></select></div>
-      <div><label class="lbl" for="hDinner">Dinner served at (optional)</label><input id="hDinner" type="text" maxlength="30" placeholder="e.g. 4:30 PM"></div>
-    </div>
+    <p class="sub">Add the address and any details. When you send it, everyone who opens this page sees the final invitation (Sunday, 4:00–8:00 PM) at the top.</p>
+    <div><label class="lbl" for="hDinner">Dinner served at (optional)</label><input id="hDinner" type="text" maxlength="30" placeholder="e.g. 5:30 PM"></div>
     <div><label class="lbl" for="hAddr">Address</label><textarea id="hAddr" maxlength="200" placeholder="Street, apartment, buzzer code"></textarea></div>
     <div><label class="lbl" for="hNote">A note for everyone (optional)</label><textarea id="hNote" maxlength="300" placeholder="Parking is on the street. Bring a container for leftovers!"></textarea></div>
     <div class="actions">
       <button class="btn" type="button" id="sendBtn">Send the final invite</button>
-      <button class="btn ghost" type="button" id="reopenBtn" hidden>Reopen voting</button>
+      <button class="btn ghost" type="button" id="reopenBtn" hidden>Take the invite down</button>
     </div>
     <div id="msgWrap" hidden style="display:flex;flex-direction:column;gap:10px">
       <label class="lbl">Message for the group chat</label>
@@ -295,7 +272,8 @@ body{margin:0}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const SLOTS=[{id:"12",label:"12:00 PM",h:12},{id:"13",label:"1:00 PM",h:13},{id:"14",label:"2:00 PM",h:14},{id:"15",label:"3:00 PM",h:15},{id:"16",label:"4:00 PM",h:16}];
+const START=new Date(2026,10,22,16,0,0), END=new Date(2026,10,22,20,0,0); // Sunday, Nov 22, 4:00–8:00 PM
+const TIME_LABEL="4:00 – 8:00 PM";
 const CATS=[
   {id:"main",label:"Mains",hint:"turkey, ham, a roast, lasagna",target:2},
   {id:"side",label:"Sides",hint:"stuffing, mac & cheese, mash, greens",target:5},
@@ -331,37 +309,21 @@ async function api(path,data){
 (()=>{const h=$("#title");const t=h.textContent;h.textContent="";[...t].forEach((ch,i)=>{const s=document.createElement("span");s.textContent=ch;s.style.animationDelay=(i*55)+"ms";s.setAttribute("aria-hidden","true");h.appendChild(s);});})();
 
 /* ---------- pickers ---------- */
-$("#timePicks").innerHTML=SLOTS.map(s=>`<label class="pick"><input type="checkbox" name="times" value="${s.id}" id="t-${s.id}"><span>${s.label}</span></label>`).join("");
 function renderCatPicks(){
   const counts=catCounts(true);const cur=(document.querySelector('input[name=cat]:checked')||{}).value;
   $("#catPicks").innerHTML=CATS.map(c=>{const n=counts[c.id]||0;const dots=Array.from({length:c.target},(_,i)=>`<i class="${i<n?'on':''}"></i>`).join("");
     return `<label class="cat"><input type="radio" name="cat" value="${c.id}" id="c-${c.id}" ${cur===c.id?'checked':''}><div class="box"><div class="top"><strong>${c.label}</strong>${n>=c.target?'<span class="full">covered</span>':`<span class="plates" aria-label="${n} of ${c.target} claimed">${dots}</span>`}</div><div class="hint">${c.hint}</div></div></label>`}).join("");
 }
-function hostTimeOptions(){
-  const counts=timeCounts();const cur=$("#hTime").value||S.cfg.time||leadingSlot();
-  $("#hTime").innerHTML=SLOTS.map(s=>`<option value="${s.id}" ${s.id===cur?'selected':''}>${s.label} · ${counts[s.id]||0} vote${(counts[s.id]||0)===1?'':'s'}</option>`).join("");
-}
-
 /* ---------- derived data ---------- */
 const people=()=>[...S.rsvps.values()].sort((a,b)=>(a.createdAt||a.updatedAt||0)-(b.createdAt||b.updatedAt||0));
 const attending=()=>people().filter(p=>p.status==="yes"||p.status==="maybe");
-function timeCounts(){const c={};attending().forEach(p=>(p.times||[]).forEach(t=>c[t]=(c[t]||0)+1));return c;}
 function catCounts(excludeMe){const c={};attending().forEach(p=>{if(p.cat&&!(excludeMe&&p.id===S.myId))c[p.cat]=(c[p.cat]||0)+1});return c;}
-function leadingSlot(){const c=timeCounts();let best=null,n=0;SLOTS.forEach(s=>{if((c[s.id]||0)>n){n=c[s.id];best=s.id}});return best||"13";}
-const slotById=id=>SLOTS.find(s=>s.id===id);
 const catById=id=>CATS.find(c=>c.id===id);
 
 /* ---------- render ---------- */
-function renderAll(){renderTally();renderBoard();renderGuests();renderCatPicks();restoreCatPick();renderFinal();if(S.hostPw)renderHost();}
+function renderAll(){renderBoard();renderGuests();renderCatPicks();restoreCatPick();renderFinal();if(S.hostPw)renderHost();}
 function restoreCatPick(){if(S.pendingCat){const c=document.querySelector(`input[name=cat][value="${S.pendingCat}"]`);if(c)c.checked=true;}}
 
-function renderTally(){
-  const c=timeCounts();const max=Math.max(1,...Object.values(c));const lead=leadingSlot();const any=Object.keys(c).length>0;
-  $("#tally").innerHTML=SLOTS.map(s=>{const n=c[s.id]||0;const who=attending().filter(p=>(p.times||[]).includes(s.id)).map(p=>esc(p.name)).join(", ");
-    return `<div class="bar ${any&&s.id===lead?'lead':''}"><span class="t">${s.label}</span><div class="track"><div class="fill" data-w="${(n/max)*100}"></div></div><span class="n">${n}</span>${who?`<div class="who">${who}</div>`:''}</div>`}).join("")
-    +(any?"":`<p class="sub">${S.loaded?"No votes yet. Pick your times above and they'll show up here.":"Loading votes…"}</p>`);
-  requestAnimationFrame(()=>document.querySelectorAll(".fill").forEach(f=>f.style.width=f.dataset.w+"%"));
-}
 function renderBoard(){
   const att=attending();
   $("#board").innerHTML=CATS.map(c=>{const list=att.filter(p=>p.cat===c.id);
@@ -375,26 +337,24 @@ function renderGuests(){
   $("#guests").innerHTML=all.length?all.map(p=>`<span class="g ${esc(p.status)}"><span class="dot">${esc((p.name||"?").trim().charAt(0).toUpperCase())}</span>${esc(p.name)}${(+p.party||1)>1?` <small style="color:var(--muted)">+${(+p.party)-1}</small>`:''}${p.diet&&S.hostPw?` <small style="color:var(--muted)">· ${esc(p.diet)}</small>`:''}${S.hostPw?`<button class="x" type="button" data-del="${esc(p.id)}" aria-label="Remove ${esc(p.name)}">×</button>`:''}</span>`).join("")
     :`<p class="sub">${S.loaded?"No RSVPs yet. Be the first name on the list.":"Loading the guest list…"}</p>`;
 }
-function eventStart(){const s=slotById(S.cfg.final?S.cfg.time:leadingSlot())||SLOTS[1];return new Date(2026,10,22,s.h,0,0);}
+function eventStart(){return START;}
 const pad=n=>String(n).padStart(2,"0");
 const icsDate=d=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
 const icsUtc=d=>d.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"");
 function renderFinal(){
   const box=$("#finalSlot");const f=!!S.cfg.final;
-  $("#timeBlock").style.display=f?"none":"flex";$("#pollCard").hidden=f;$("#dishNum").textContent=f?"2":"3";
-  if(!f){box.hidden=true;box.innerHTML="";box.dataset.sig="";$("#timeChip").innerHTML="<b>Afternoon</b> · time TBD";return;}
-  const s=slotById(S.cfg.time)||SLOTS[1];$("#timeChip").innerHTML=`<b>${s.label}</b>`;
+  if(!f){box.hidden=true;box.innerHTML="";box.dataset.sig="";return;}
   const mine=S.rsvps.get(S.myId);const cat=mine&&catById(mine.cat);
   const sig=JSON.stringify([S.cfg,mine&&mine.dish,mine&&mine.status,mine&&mine.cat]);
   if(box.dataset.sig===sig)return;box.dataset.sig=sig;
-  const start=new Date(2026,10,22,s.h,0,0),end=new Date(start.getTime()+5*3600e3);
+  const start=START,end=END;
   let tz="";try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||""}catch(e){}
   const cal=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("Friendsgiving 🦃")}&dates=${icsDate(start)}/${icsDate(end)}${tz?`&ctz=${encodeURIComponent(tz)}`:""}&location=${encodeURIComponent(S.cfg.address||"")}&details=${encodeURIComponent((S.cfg.note||"")+"\n\n"+location.origin)}`;
   box.hidden=false;
   box.innerHTML=`<div class="invite">
     <div class="eyebrow">It's official</div>
     <h2>Friendsgiving</h2>
-    <div class="when">Sunday, Nov 22 · ${s.label}</div>
+    <div class="when">Sunday, Nov 22 · ${TIME_LABEL}</div>
     ${S.cfg.dinner?`<div class="note">Dinner is served at ${esc(S.cfg.dinner)}</div>`:""}
     <div class="perf" aria-hidden="true"></div>
     ${S.cfg.address?`<div class="where"><strong>Where</strong><br>${esc(S.cfg.address)}</div>`:""}
@@ -415,15 +375,14 @@ function renderFinal(){
   };
 }
 function renderHost(){
-  $("#loginCard").hidden=true;$("#hostCard").hidden=false;$("#hostLink").hidden=true;hostTimeOptions();
-  if(!S.hostPrefilled&&S.loaded){S.hostPrefilled=true;$("#hDinner").value=S.cfg.dinner||"";$("#hAddr").value=S.cfg.address||"";$("#hNote").value=S.cfg.note||"";if(S.cfg.time)$("#hTime").value=S.cfg.time;}
+  $("#loginCard").hidden=true;$("#hostCard").hidden=false;$("#hostLink").hidden=true;
+  if(!S.hostPrefilled&&S.loaded){S.hostPrefilled=true;$("#hDinner").value=S.cfg.dinner||"";$("#hAddr").value=S.cfg.address||"";$("#hNote").value=S.cfg.note||"";}
   $("#sendBtn").textContent=S.cfg.final?"Update the invite":"Send the final invite";
   $("#reopenBtn").hidden=!S.cfg.final;
   $("#msgWrap").hidden=!S.cfg.final;if(S.cfg.final)$("#msg").textContent=groupMsg();
 }
 function groupMsg(){
-  const s=slotById(S.cfg.time)||SLOTS[1];
-  const lines=[`🦃 FRIENDSGIVING IS ON 🍂`,`Sunday, Nov 22 at ${s.label}${S.cfg.dinner?` (dinner at ${S.cfg.dinner})`:""}`];
+  const lines=[`🦃 FRIENDSGIVING IS ON 🍂`,`Sunday, Nov 22, ${TIME_LABEL}${S.cfg.dinner?` (dinner at ${S.cfg.dinner})`:""}`];
   if(S.cfg.address)lines.push(`📍 ${S.cfg.address}`);
   if(S.cfg.note)lines.push("",S.cfg.note);
   const att=attending();if(att.length){lines.push("","Who's bringing what:");CATS.forEach(c=>{const l=att.filter(p=>p.cat===c.id);if(l.length)lines.push(`• ${c.label}: ${l.map(p=>`${p.name} (${p.dish||"TBD"})`).join(", ")}`)});}
@@ -472,22 +431,19 @@ $("#rsvp").addEventListener("change",e=>{S.dirty=true;if(e.target.name==="cat"){
 function prefill(d){
   $("#name").value=d.name||"";$("#party").value=String(d.party||1);
   const st=document.querySelector(`input[name=status][value="${d.status}"]`);if(st)st.checked=true;
-  document.querySelectorAll("input[name=times]").forEach(i=>i.checked=(d.times||[]).includes(i.value));
   S.pendingCat=d.cat||"";$("#dish").value=d.dish||"";$("#diet").value=d.diet||"";$("#saveBtn").textContent="Update my RSVP";
 }
 $("#rsvp").addEventListener("submit",async e=>{
   e.preventDefault();
   const name=$("#name").value.trim();const status=(document.querySelector("input[name=status]:checked")||{}).value;
-  const times=[...document.querySelectorAll("input[name=times]:checked")].map(i=>i.value);
   const cat=(document.querySelector("input[name=cat]:checked")||{}).value||"";const dish=$("#dish").value.trim();
   const note=$("#saveNote");
   if(!name){note.textContent="Add your name so we know who's coming.";$("#name").focus();return}
   if(!status){note.textContent="Pick Count me in, Maybe, or Can't make it.";return}
-  if(status!=="no"&&!S.cfg.final&&!times.length){note.textContent="Pick at least one time that works for you.";return}
   if(status!=="no"&&!cat){note.textContent="Choose what you'll bring.";return}
   note.textContent="";const btn=$("#saveBtn");btn.disabled=true;btn.textContent="Saving…";
   try{
-    await write("/api/rsvp",{id:S.myId,secret:S.secret,name,status,party:+$("#party").value||1,times,cat,dish,diet:$("#diet").value.trim()});
+    await write("/api/rsvp",{id:S.myId,secret:S.secret,name,status,party:+$("#party").value||1,cat,dish,diet:$("#diet").value.trim()});
     S.dirty=false;S.prefilled=true;$("#saveBtn").textContent="Update my RSVP";
     toast(status==="yes"?"You're on the list. See you Sunday!":status==="maybe"?"Saved as a maybe. Let us know soon!":"Got it. We'll miss you!");
     if(status!=="no"){const r=btn.getBoundingClientRect();burst(r.left+r.width/2,r.top);}
@@ -508,7 +464,7 @@ if(new URLSearchParams(location.search).has("host"))$("#loginCard").hidden=false
 {const saved=ls.get("fg_host");if(saved)hostLogin(saved,true);}
 
 async function saveCfg(patch){
-  const cfg={password:S.hostPw,action:"save",time:$("#hTime").value,dinner:$("#hDinner").value.trim(),address:$("#hAddr").value.trim(),note:$("#hNote").value.trim(),final:!!S.cfg.final,...patch};
+  const cfg={password:S.hostPw,action:"save",dinner:$("#hDinner").value.trim(),address:$("#hAddr").value.trim(),note:$("#hNote").value.trim(),final:!!S.cfg.final,...patch};
   await write("/api/event",cfg);
 }
 $("#sendBtn").addEventListener("click",async()=>{
@@ -516,7 +472,7 @@ $("#sendBtn").addEventListener("click",async()=>{
   try{await saveCfg({final:true});toast("Invite sent. Everyone sees it at the top of the page.");window.scrollTo({top:0,behavior:"smooth"});burst(innerWidth/2,120);}
   catch(e){toast(e.message);}finally{b.disabled=false;renderHost();}
 });
-$("#reopenBtn").addEventListener("click",async()=>{try{await saveCfg({final:false});toast("Voting is open again.")}catch(e){toast(e.message)}});
+$("#reopenBtn").addEventListener("click",async()=>{try{await saveCfg({final:false});toast("The invite is hidden again. Send it when you're ready.")}catch(e){toast(e.message)}});
 $("#copyBtn").addEventListener("click",()=>copy($("#msg").textContent,$("#msg"),"Copied. Paste it in the group chat!"));
 $("#guests").addEventListener("click",async e=>{
   const id=e.target.closest("[data-del]")?.dataset.del;if(!id||!S.hostPw)return;

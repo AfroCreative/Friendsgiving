@@ -1,5 +1,5 @@
 import {
-  CAT_IDS, SLOT_IDS, STATUSES, MAX_RSVPS, ID_RE, HttpError,
+  CAT_IDS, STATUSES, MAX_RSVPS, ID_RE, HttpError,
   hashSecret, loadAll, publicState, putRsvp, readBody, route, send, str,
 } from "./_store.js";
 
@@ -31,11 +31,9 @@ export default route(async (req, res) => {
   }
 
   const going = status !== "no";
-  let times = Array.isArray(b.times) ? [...new Set(b.times.map(String))].filter((t) => SLOT_IDS.includes(t)) : [];
-  if (state.event.final) times = existing?.times || times; // voting is closed: keep earlier votes
+  const times = []; // the time is fixed (4–8 PM), so there's nothing to vote on
   const cat = going && CAT_IDS.includes(b.cat) ? b.cat : "";
   if (going && !cat) throw new HttpError(400, "Choose what you'll bring.");
-  if (going && !state.event.final && !times.length) throw new HttpError(400, "Pick at least one time that works for you.");
 
   const record = {
     name, status, times, cat,

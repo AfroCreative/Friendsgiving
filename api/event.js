@@ -1,10 +1,10 @@
 import {
-  SLOT_IDS, ID_RE, HttpError, checkHostPassword, deleteRsvp, loadAll, multiline, publicState, putEvent, readBody, route, send, str,
+  ID_RE, HttpError, checkHostPassword, deleteRsvp, loadAll, multiline, publicState, putEvent, readBody, route, send, str,
 } from "./_store.js";
 
 // POST /api/event: host-only actions, guarded by the HOST_PASSWORD environment variable.
 //   { password, action: "check" }                                     verify the password
-//   { password, action: "save", time, dinner, address, note, final }  save event details / send invite
+//   { password, action: "save", dinner, address, note, final }  save event details / send invite
 //   { password, action: "deleteRsvp", id }                            remove a guest's RSVP
 // "save" and "deleteRsvp" respond with the fresh state.
 export default route(async (req, res) => {
@@ -16,7 +16,7 @@ export default route(async (req, res) => {
 
   if (b.action === "save") {
     const event = {
-      time: SLOT_IDS.includes(String(b.time)) ? String(b.time) : "13",
+      time: "16", // fixed: Sunday 4:00–8:00 PM
       dinner: str(b.dinner, 30),
       address: multiline(b.address, 200),
       note: multiline(b.note, 300),
