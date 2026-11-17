@@ -100,6 +100,20 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .menu-picks{display:flex;flex-direction:column;gap:16px}
 .cats{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
 .slot li.open{color:var(--muted)}
+/* the habesha food ban */
+.banned .cat .box{cursor:default;border-style:dashed;padding-top:40px}
+.banned .cat strong{text-decoration:line-through;text-decoration-color:var(--cranberry);text-decoration-thickness:2px}
+.banned .cat .hint{font-style:italic}
+.stamp{position:absolute;top:8px;right:8px;transform:rotate(-12deg);border:2px solid var(--cranberry);color:var(--cranberry);font-family:var(--f-mono);font-size:11px;font-weight:500;letter-spacing:.14em;padding:2px 6px;border-radius:4px;pointer-events:none;
+  animation:stamp .5s cubic-bezier(.2,1.6,.4,1) backwards}
+.banned .cat:nth-child(2) .stamp{animation-delay:.12s;transform:rotate(8deg)}
+.banned .cat:nth-child(3) .stamp{animation-delay:.24s;transform:rotate(-6deg)}
+.banned .cat:nth-child(4) .stamp{animation-delay:.36s;transform:rotate(10deg)}
+@keyframes stamp{from{opacity:0;scale:2.2}}
+.ruling{margin:0;font-size:14px;color:var(--muted);line-height:1.5}
+.ruling b{color:var(--cream)}
+.slot.banned-slot li{color:var(--muted)}
+.slot.banned-slot s{text-decoration-color:var(--cranberry);text-decoration-thickness:2px;color:var(--cream)}
 .slot li .it{color:var(--cream);font-weight:600}
 .plates{display:flex;gap:4px}
 .plates i{width:12px;height:12px;border-radius:50%;border:1.5px solid var(--muted);display:block}
@@ -289,9 +303,16 @@ const MENU=[
   {label:"Pizza",items:[{id:"pizza-chicken",label:"Chicken pizza"},{id:"pizza-beef",label:"Beef pizza"},{id:"pizza-cheese",label:"Cheese pizza"}]},
   {label:"Drinks",items:[{id:"coke",label:"Coke"},{id:"fanta",label:"Fanta"},{id:"sprite",label:"Sprite"},{id:"water",label:"Water"}]},
   {label:"Sides",items:[{id:"mac",label:"Mac & cheese"}]},
-  {label:"Snacks",items:[{id:"chips",label:"Chips"},{id:"sambusa",label:"Sambusa"},{id:"chocolate",label:"Chocolate"}]},
+  {label:"Snacks",items:[{id:"chips",label:"Chips"},{id:"sambusa",label:"Sambusa",note:"the one habesha loophole"},{id:"chocolate",label:"Chocolate"}]},
 ];
 const OTHER={id:"other",label:"Something else"};
+// Not claimable. Some of us thought this was a habesha food night; others remembered what berbere does to a white shirt.
+const BANNED=[
+  {label:"Doro wat",why:"Claimed by your dry cleaner"},
+  {label:"Shiro",why:"Already on your white shirt"},
+  {label:"Injera",why:"Too much commitment for one afternoon"},
+  {label:"Kitfo",why:"Maybe next year. Maybe."},
+];
 const ITEMS=[...MENU.flatMap(g=>g.items),OTHER];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -326,7 +347,10 @@ function renderCatPicks(){
     const hint=it.id==="other"?"Not on the list? Tell us below.":mine?"Yours":taken?`${esc(o.name)} has it`:"Up for grabs";
     return `<label class="cat ${taken?'taken':''}"><input type="radio" name="cat" value="${it.id}" id="c-${it.id}" ${cur===it.id&&!taken?'checked':''} ${taken?'disabled':''}><div class="box"><strong>${it.label}</strong><div class="hint ${mine?'mine':''}">${hint}</div></div></label>`;};
   $("#catPicks").innerHTML=MENU.map(g=>`<div class="menu-group"><h3>${g.label}</h3><div class="cats">${g.items.map(tile).join("")}</div></div>`).join("")
-    +`<div class="menu-group"><h3>Anything else</h3><div class="cats">${tile(OTHER)}</div></div>`;
+    +`<div class="menu-group"><h3>Anything else</h3><div class="cats">${tile(OTHER)}</div></div>`
+    +`<div class="menu-group banned"><h3>Habesha food</h3>
+       <p class="ruling">Yes, we know. Some of you thought this was a habesha food night. Others reminded us what happens to a white shirt within ten feet of berbere. <b>The ruling: no wat this year.</b> Sambusa was granted a pardon as our peace treaty.</p>
+       <div class="cats">${BANNED.map(b=>`<div class="cat"><div class="box"><strong>${b.label}</strong><div class="hint">${b.why}</div></div><span class="stamp">BANNED</span></div>`).join("")}</div></div>`;
   updateDishField();
 }
 function updateDishField(){
@@ -348,9 +372,10 @@ function restoreCatPick(){if(S.pendingCat){const c=document.querySelector(`input
 
 function renderBoard(){
   const owners=claims();const extras=attending().filter(p=>p.cat==="other");
-  const item=it=>{const o=owners[it.id];return o?`<li><span class="it">${it.label}</span> · <b>${esc(o.name)}</b>${o.dish?` <small style="color:var(--muted)">(${esc(o.dish)})</small>`:""}</li>`:`<li class="open"><span class="it">${it.label}</span> · up for grabs</li>`;};
+  const item=it=>{const o=owners[it.id];const nt=it.note?` <small style="color:var(--muted)"><i>${it.note}</i></small>`:"";return o?`<li><span class="it">${it.label}</span>${nt} · <b>${esc(o.name)}</b>${o.dish?` <small style="color:var(--muted)">(${esc(o.dish)})</small>`:""}</li>`:`<li class="open"><span class="it">${it.label}</span>${nt} · up for grabs</li>`;};
   $("#board").innerHTML=MENU.map(g=>{const n=g.items.filter(it=>owners[it.id]).length;
     return `<div class="slot"><header><h3>${g.label}</h3><span class="full" style="color:${n>=g.items.length?'var(--sage)':'var(--muted)'}">${n}/${g.items.length}</span></header><ul>${g.items.map(item).join("")}</ul></div>`}).join("")
+    +`<div class="slot banned-slot"><header><h3>Habesha food</h3><span class="full" style="color:var(--cranberry)">banned</span></header><ul>${BANNED.map(b=>`<li><s>${b.label}</s></li>`).join("")}<li><i>Protecting white shirts since Nov 22.</i></li></ul></div>`
     +(extras.length?`<div class="slot"><header><h3>Extras</h3><span class="full">${extras.length}</span></header><ul>${extras.map(p=>`<li><b>${esc(p.name)}</b> · ${esc(p.dish||"something good")}</li>`).join("")}</ul></div>`:"");
 }
 function renderGuests(){
@@ -412,6 +437,7 @@ function groupMsg(){
   lines.push("","🍽️ The menu:");
   MENU.forEach(g=>g.items.forEach(it=>{const o=owners[it.id];lines.push(`• ${it.label}: ${o?o.name:"still needed!"}`)}));
   att.filter(p=>p.cat==="other").forEach(p=>lines.push(`• ${p.dish||"Extra"}: ${p.name}`));
+  lines.push("","🚫 Habesha food: banned to protect your white shirts. Sambusa got a pardon.");
   lines.push("",`Full invite + RSVP: ${location.origin}`);
   return lines.join("\n");
 }
