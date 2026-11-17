@@ -4,7 +4,16 @@
 import crypto from "node:crypto";
 
 export const SLOT_IDS = ["12", "13", "14", "15", "16"];
-export const CAT_IDS = ["main", "side", "dessert", "app", "drink", "supply"];
+// The menu. Keep in sync with MENU in index.html. Each item can be claimed by one guest; "other" by anyone.
+export const ITEMS = {
+  chicken: "Chicken",
+  "pizza-chicken": "Chicken pizza", "pizza-beef": "Beef pizza", "pizza-cheese": "Cheese pizza",
+  coke: "Coke", fanta: "Fanta", sprite: "Sprite", water: "Water",
+  mac: "Mac & cheese",
+  chips: "Chips", sambusa: "Sambusa", chocolate: "Chocolate",
+  other: "Something else",
+};
+export const CAT_IDS = Object.keys(ITEMS);
 export const STATUSES = { yes: "Coming", maybe: "Maybe", no: "Can't make it" };
 export const MAX_RSVPS = 200;
 export const ID_RE = /^[A-Za-z0-9]{8,40}$/;
