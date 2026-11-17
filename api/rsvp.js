@@ -1,5 +1,5 @@
 import {
-  CAT_IDS, ITEMS, STATUSES, MAX_RSVPS, ID_RE, HttpError,
+  CAT_IDS, ITEMS, LINA_ONLY, isLina, STATUSES, MAX_RSVPS, ID_RE, HttpError,
   hashSecret, loadAll, publicState, putRsvp, readBody, route, send, str,
 } from "./_store.js";
 
@@ -34,6 +34,7 @@ export default route(async (req, res) => {
   const times = []; // the time is fixed (4–8 PM), so there's nothing to vote on
   const cat = going && CAT_IDS.includes(b.cat) ? b.cat : "";
   if (going && !cat) throw new HttpError(400, "Choose what you'll bring.");
+  if (going && LINA_ONLY.has(cat) && !isLina(name)) throw new HttpError(403, "Habesha food is Lina-only. House rules.");
   if (going && cat === "other" && !str(b.dish, 60)) throw new HttpError(400, "Tell us what you're bringing.");
   if (going && cat !== "other") {
     const holder = Object.entries(state.rsvps).find(([oid, r]) => oid !== id && r.cat === cat && r.status !== "no");

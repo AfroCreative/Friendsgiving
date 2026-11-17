@@ -12,7 +12,11 @@ export const ITEMS = {
   mac: "Mac & cheese",
   chips: "Chips", sambusa: "Sambusa", chocolate: "Chocolate",
   other: "Something else",
+  // Habesha food: Lina only.
+  "doro-wat": "Doro wat", shiro: "Shiro", injera: "Injera", kitfo: "Kitfo",
 };
+export const LINA_ONLY = new Set(["doro-wat", "shiro", "injera", "kitfo"]);
+export const isLina = (name) => /^lina\b/i.test(String(name || "").trim());
 export const CAT_IDS = Object.keys(ITEMS);
 export const STATUSES = { yes: "Coming", maybe: "Maybe", no: "Can't make it" };
 export const MAX_RSVPS = 200;

@@ -110,6 +110,10 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .banned .cat:nth-child(3) .stamp{animation-delay:.24s;transform:rotate(-6deg)}
 .banned .cat:nth-child(4) .stamp{animation-delay:.36s;transform:rotate(10deg)}
 @keyframes stamp{from{opacity:0;scale:2.2}}
+.banned.unlocked .cat strong{text-decoration:none}
+.banned.unlocked .cat .box{cursor:pointer;border-style:solid}
+.banned.unlocked .cat input:checked + .box{border-color:var(--sage);background:#26302a;box-shadow:inset 0 0 0 1px var(--sage)}
+.stamp.ok{border-color:var(--sage);color:var(--sage)}
 .ruling{margin:0;font-size:14px;color:var(--muted);line-height:1.5}
 .ruling b{color:var(--cream)}
 .slot.banned-slot li{color:var(--muted)}
@@ -306,14 +310,16 @@ const MENU=[
   {label:"Snacks",items:[{id:"chips",label:"Chips"},{id:"sambusa",label:"Sambusa",note:"the one habesha loophole"},{id:"chocolate",label:"Chocolate"}]},
 ];
 const OTHER={id:"other",label:"Something else"};
-// Not claimable. Some of us thought this was a habesha food night; others remembered what berbere does to a white shirt.
+// Banned for everyone except Lina, who thought this was a habesha food night.
+// (The server enforces this too.)
 const BANNED=[
-  {label:"Doro wat",why:"Claimed by your dry cleaner"},
-  {label:"Shiro",why:"Already on your white shirt"},
-  {label:"Injera",why:"Too much commitment for one afternoon"},
-  {label:"Kitfo",why:"Maybe next year. Maybe."},
+  {id:"doro-wat",label:"Doro wat",why:"Claimed by your dry cleaner"},
+  {id:"shiro",label:"Shiro",why:"Already on your white shirt"},
+  {id:"injera",label:"Injera",why:"Too much commitment for one afternoon"},
+  {id:"kitfo",label:"Kitfo",why:"Maybe next year. Maybe."},
 ];
-const ITEMS=[...MENU.flatMap(g=>g.items),OTHER];
+const ITEMS=[...MENU.flatMap(g=>g.items),OTHER,...BANNED];
+const isLina=n=>/^lina\b/i.test(String(n||"").trim());
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
@@ -348,10 +354,18 @@ function renderCatPicks(){
     return `<label class="cat ${taken?'taken':''}"><input type="radio" name="cat" value="${it.id}" id="c-${it.id}" ${cur===it.id&&!taken?'checked':''} ${taken?'disabled':''}><div class="box"><strong>${it.label}</strong><div class="hint ${mine?'mine':''}">${hint}</div></div></label>`;};
   $("#catPicks").innerHTML=MENU.map(g=>`<div class="menu-group"><h3>${g.label}</h3><div class="cats">${g.items.map(tile).join("")}</div></div>`).join("")
     +`<div class="menu-group"><h3>Anything else</h3><div class="cats">${tile(OTHER)}</div></div>`
-    +`<div class="menu-group banned"><h3>Habesha food</h3>
-       <p class="ruling">Yes, we know. Some of you thought this was a habesha food night. Others reminded us what happens to a white shirt within ten feet of berbere. <b>The ruling: no wat this year.</b> Sambusa was granted a pardon as our peace treaty.</p>
-       <div class="cats">${BANNED.map(b=>`<div class="cat"><div class="box"><strong>${b.label}</strong><div class="hint">${b.why}</div></div><span class="stamp">BANNED</span></div>`).join("")}</div></div>`;
+    +habeshaSection(cur,owners);
   updateDishField();
+}
+function habeshaSection(cur,owners){
+  const lina=isLina($("#name").value);
+  if(!lina) return `<div class="menu-group banned"><h3>Habesha food</h3>
+       <p class="ruling">Yes, we know. Some of you thought this was a habesha food night. Others reminded us what happens to a white shirt within ten feet of berbere. <b>The ruling: no wat this year.</b> Sambusa was granted a pardon as our peace treaty. <b>One exception was made: Lina.</b></p>
+       <div class="cats">${BANNED.map(b=>{const o=owners[b.id];return `<div class="cat"><div class="box"><strong>${b.label}</strong><div class="hint">${o?`${esc(o.name)} got a special exception`:b.why}</div></div><span class="stamp">${o?"LINA'S":"BANNED"}</span></div>`}).join("")}</div></div>`;
+  return `<div class="menu-group banned unlocked"><h3>Habesha food · Lina's exception</h3>
+       <p class="ruling"><b>Lina, this one's for you.</b> You wanted habesha food, so you're the only person allowed to bring it. In return, you're personally responsible for every white shirt in the room. Napkins are on you. 🌶️</p>
+       <div class="cats">${BANNED.map(b=>{const o=owners[b.id];const mine=o&&o.id===S.myId;const taken=o&&!mine;
+         return `<label class="cat ${taken?'taken':''}"><input type="radio" name="cat" value="${b.id}" id="c-${b.id}" ${cur===b.id&&!taken?'checked':''} ${taken?'disabled':''}><div class="box"><strong>${b.label}</strong><div class="hint ${mine?'mine':''}">${mine?"Yours. Bring extra napkins.":taken?`${esc(o.name)} has it`:"Approved for Lina only"}</div></div><span class="stamp ok">${mine?"YOURS":"LINA ONLY"}</span></label>`}).join("")}</div></div>`;
 }
 function updateDishField(){
   const v=(document.querySelector('input[name=cat]:checked')||{}).value;const other=v==="other";
@@ -375,7 +389,7 @@ function renderBoard(){
   const item=it=>{const o=owners[it.id];const nt=it.note?` <small style="color:var(--muted)"><i>${it.note}</i></small>`:"";return o?`<li><span class="it">${it.label}</span>${nt} · <b>${esc(o.name)}</b>${o.dish?` <small style="color:var(--muted)">(${esc(o.dish)})</small>`:""}</li>`:`<li class="open"><span class="it">${it.label}</span>${nt} · up for grabs</li>`;};
   $("#board").innerHTML=MENU.map(g=>{const n=g.items.filter(it=>owners[it.id]).length;
     return `<div class="slot"><header><h3>${g.label}</h3><span class="full" style="color:${n>=g.items.length?'var(--sage)':'var(--muted)'}">${n}/${g.items.length}</span></header><ul>${g.items.map(item).join("")}</ul></div>`}).join("")
-    +`<div class="slot banned-slot"><header><h3>Habesha food</h3><span class="full" style="color:var(--cranberry)">banned</span></header><ul>${BANNED.map(b=>`<li><s>${b.label}</s></li>`).join("")}<li><i>Protecting white shirts since Nov 22.</i></li></ul></div>`
+    +`<div class="slot banned-slot"><header><h3>Habesha food</h3><span class="full" style="color:var(--cranberry)">banned*</span></header><ul>${BANNED.map(b=>{const o=owners[b.id];return o?`<li><span class="it">${b.label}</span> · <b>${esc(o.name)}</b> <small><i>(special exception)</i></small></li>`:`<li><s>${b.label}</s></li>`}).join("")}<li><i>*Except for Lina. Protecting white shirts since Nov 22.</i></li></ul></div>`
     +(extras.length?`<div class="slot"><header><h3>Extras</h3><span class="full">${extras.length}</span></header><ul>${extras.map(p=>`<li><b>${esc(p.name)}</b> · ${esc(p.dish||"something good")}</li>`).join("")}</ul></div>`:"");
 }
 function renderGuests(){
@@ -437,7 +451,9 @@ function groupMsg(){
   lines.push("","🍽️ The menu:");
   MENU.forEach(g=>g.items.forEach(it=>{const o=owners[it.id];lines.push(`• ${it.label}: ${o?o.name:"still needed!"}`)}));
   att.filter(p=>p.cat==="other").forEach(p=>lines.push(`• ${p.dish||"Extra"}: ${p.name}`));
-  lines.push("","🚫 Habesha food: banned to protect your white shirts. Sambusa got a pardon.");
+  const linas=BANNED.filter(b=>owners[b.id]).map(b=>b.label);
+  lines.push("","🚫 Habesha food: banned to protect your white shirts. Sambusa got a pardon. Lina got an exception.");
+  if(linas.length)lines.push(`🌶️ Lina's exception: ${linas.join(", ")}. Wear dark colors.`);
   lines.push("",`Full invite + RSVP: ${location.origin}`);
   return lines.join("\n");
 }
@@ -478,12 +494,12 @@ setInterval(()=>{if(document.visibilityState==="visible")load()},10000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")load()});
 
 /* ---------- form ---------- */
-$("#rsvp").addEventListener("input",()=>S.dirty=true);
+$("#rsvp").addEventListener("input",e=>{S.dirty=true;if(e.target.id==="name"){const l=isLina(e.target.value);if(l!==S.wasLina){S.wasLina=l;renderCatPicks();restoreCatPick();}}});
 $("#rsvp").addEventListener("change",e=>{S.dirty=true;if(e.target.name==="cat"){S.pendingCat=e.target.value;updateDishField();}});
 function prefill(d){
   $("#name").value=d.name||"";$("#party").value=String(d.party||1);
   const st=document.querySelector(`input[name=status][value="${d.status}"]`);if(st)st.checked=true;
-  S.pendingCat=d.cat||"";$("#dish").value=d.dish||"";$("#diet").value=d.diet||"";$("#saveBtn").textContent="Update my RSVP";
+  S.wasLina=isLina(d.name);S.pendingCat=d.cat||"";$("#dish").value=d.dish||"";$("#diet").value=d.diet||"";$("#saveBtn").textContent="Update my RSVP";
 }
 $("#rsvp").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -493,6 +509,7 @@ $("#rsvp").addEventListener("submit",async e=>{
   if(!name){note.textContent="Add your name so we know who's coming.";$("#name").focus();return}
   if(!status){note.textContent="Pick Count me in, Maybe, or Can't make it.";return}
   if(status!=="no"&&!cat){note.textContent="Choose what you'll bring.";return}
+  if(status!=="no"&&BANNED.some(b=>b.id===cat)&&!isLina(name)){note.textContent="Habesha food is Lina-only. House rules.";return}
   if(status!=="no"&&cat==="other"&&!dish){note.textContent="Tell us what you're bringing.";$("#dish").focus();return}
   note.textContent="";const btn=$("#saveBtn");btn.disabled=true;btn.textContent="Saving…";
   try{
