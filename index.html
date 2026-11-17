@@ -1,5 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Friendsgiving 2026</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Friendsgiving · Sunday, Nov 22. RSVP, vote on a start time, and claim a dish.">
+<meta property="og:title" content="You're invited to Friendsgiving 🍂">
+<meta property="og:description" content="Sunday, Nov 22 in the afternoon. RSVP, vote on a time, and claim a dish for the potluck.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#1f1519">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍂</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
@@ -34,7 +44,7 @@ body{color:var(--cream);font-family:var(--f-body);font-size:16px;line-height:1.5
 /* hero */
 .hero{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;padding-block:24px 8px}
 .eyebrow{font-family:var(--f-mono);font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--marigold)}
-h1{font-family:var(--f-display);font-weight:400;font-size:clamp(48px,13vw,104px);line-height:1;margin:0;color:var(--cream);
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(36px,11vw,88px);white-space:nowrap;line-height:1;margin:0;color:var(--cream);
   text-shadow:0 4px 0 var(--cranberry),0 8px 30px rgba(0,0,0,.4);letter-spacing:.01em}
 h1 span{display:inline-block;animation:drop .9s cubic-bezier(.2,.9,.3,1.3) backwards}
 @keyframes drop{from{transform:translateY(-60px) rotate(-14deg);opacity:0}}
@@ -155,7 +165,22 @@ footer{text-align:center;color:var(--muted);font-size:13px;font-family:var(--f-m
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
-
+<style>
+body{margin:0}
+[hidden]{display:none!important}
+.wrap{padding-top:max(40px,env(safe-area-inset-top,0px))}
+.g .x{margin-left:4px;border:0;background:none;color:var(--muted);font:inherit;font-size:16px;line-height:1;cursor:pointer;padding:0 2px;border-radius:6px}
+.g .x:hover{color:var(--cranberry)}
+.editlink{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:14px;background:var(--night);border:1px dashed var(--line)}
+.editlink code{font-family:var(--f-mono);font-size:12px;word-break:break-all;color:var(--muted);user-select:all}
+.linkbtn{background:none;border:0;color:var(--muted);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;padding:4px}
+.linkbtn:hover{color:var(--cream)}
+.inline{display:flex;gap:10px;flex-wrap:wrap}
+.inline input{flex:1 1 200px;width:auto}
+.err{color:#ff8a8a;font-size:14px}
+</style>
+</head>
+<body>
 <canvas id="leaves" aria-hidden="true"></canvas>
 
 <main class="wrap">
@@ -182,7 +207,7 @@ footer{text-align:center;color:var(--muted);font-size:13px;font-family:var(--f-m
   <form id="rsvp" class="card" novalidate>
     <div class="step"><span class="num">1</span><h2>Are you coming?</h2></div>
     <div class="row">
-      <div><label class="lbl" for="name">Your name</label><input id="name" type="text" maxlength="40" autocomplete="name" placeholder="e.g. Maya"></div>
+      <div><label class="lbl" for="name">Your name</label><input id="name" type="text" maxlength="40" autocomplete="given-name" placeholder="e.g. Maya"></div>
       <div><label class="lbl" for="party">Total in your party</label>
         <select id="party"><option value="1">Just me</option><option value="2">2 of us</option><option value="3">3 of us</option><option value="4">4 of us</option><option value="5">5 of us</option></select></div>
     </div>
@@ -205,7 +230,13 @@ footer{text-align:center;color:var(--muted);font-size:13px;font-family:var(--f-m
     <div><label class="lbl" for="diet">Allergies or dietary needs <span style="text-transform:none;letter-spacing:0">(optional)</span></label><input id="diet" type="text" maxlength="80" placeholder="e.g. vegetarian, no nuts"></div>
     <div class="actions">
       <button class="btn" id="saveBtn" type="submit">Save my RSVP</button>
-      <span class="note" id="saveNote"></span>
+      <span class="note" id="saveNote" role="alert"></span>
+    </div>
+    <div class="editlink" id="editLink" hidden>
+      <strong>Your personal edit link</strong>
+      <span class="note">This browser remembers your RSVP. To change it from another phone or laptop, open this link there.</span>
+      <code id="editUrl"></code>
+      <div class="actions"><button class="btn ghost" type="button" id="copyEdit">Copy my edit link</button></div>
     </div>
   </form>
 
@@ -223,6 +254,17 @@ footer{text-align:center;color:var(--muted);font-size:13px;font-family:var(--f-m
     <h2>Who's coming</h2>
     <div class="stats" id="stats"></div>
     <div class="guests" id="guests"></div>
+  </section>
+
+  <section class="card host" id="loginCard" hidden>
+    <span class="tag">Host</span>
+    <h2>Host sign-in</h2>
+    <form class="inline" id="loginForm">
+      <label class="lbl" for="hostPw" style="flex-basis:100%;margin:0">Host password</label>
+      <input id="hostPw" type="password" autocomplete="current-password">
+      <button class="btn" type="submit">Unlock</button>
+    </form>
+    <span class="err" id="loginErr"></span>
   </section>
 
   <section class="card host" id="hostCard" hidden>
@@ -244,9 +286,11 @@ footer{text-align:center;color:var(--muted);font-size:13px;font-family:var(--f-m
       <pre class="msg" id="msg"></pre>
       <div class="actions"><button class="btn ghost" type="button" id="copyBtn">Copy message</button></div>
     </div>
+    <p class="note">Tap × next to a guest's name to remove their RSVP.</p>
+    <button class="linkbtn" type="button" id="logoutBtn" style="align-self:flex-start">Sign out of host mode</button>
   </section>
 
-  <footer>Sunday · November 22 · bring an appetite</footer>
+  <footer>Sunday · November 22 · bring an appetite<br><button class="linkbtn" type="button" id="hostLink">I'm the host</button></footer>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -262,15 +306,34 @@ const CATS=[
 ];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const S={db:null,user:null,myId:null,isOwner:false,cfg:{},rsvps:new Map(),dirty:false,prefilled:false,readOnly:false};
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const S={cfg:{},rsvps:new Map(),dirty:false,prefilled:false,hostPw:null,hostPrefilled:false,loaded:false};
+
+/* ---------- identity: a random id + secret kept in this browser ---------- */
+function rand(n){const a="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";const b=new Uint8Array(n);crypto.getRandomValues(b);return [...b].map(x=>a[x%a.length]).join("");}
+(()=>{
+  const q=new URLSearchParams(location.search);const me=q.get("me");
+  if(me&&/^[A-Za-z0-9_-]{8,40}\.[A-Za-z0-9_-]{16,100}$/.test(me)){const [i,s]=me.split(".");ls.set("fg_id",i);ls.set("fg_secret",s);q.delete("me");history.replaceState(null,"",location.pathname+(q.toString()?"?"+q:""));}
+  S.myId=ls.get("fg_id");S.secret=ls.get("fg_secret");
+  if(!S.myId||!S.secret){S.myId=rand(14);S.secret=rand(28);ls.set("fg_id",S.myId);ls.set("fg_secret",S.secret);}
+})();
+const editUrl=()=>`${location.origin}${location.pathname}?me=${S.myId}.${S.secret}`;
+
+/* ---------- api ---------- */
+async function api(path,data){
+  const r=await fetch(path,data?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)}:{cache:"no-store"});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw Object.assign(new Error(j.error||"Couldn't reach the server. Check your connection and try again."),{status:r.status});
+  return j;
+}
 
 /* ---------- title letters ---------- */
 (()=>{const h=$("#title");const t=h.textContent;h.textContent="";[...t].forEach((ch,i)=>{const s=document.createElement("span");s.textContent=ch;s.style.animationDelay=(i*55)+"ms";s.setAttribute("aria-hidden","true");h.appendChild(s);});})();
 
-/* ---------- static pickers ---------- */
+/* ---------- pickers ---------- */
 $("#timePicks").innerHTML=SLOTS.map(s=>`<label class="pick"><input type="checkbox" name="times" value="${s.id}" id="t-${s.id}"><span>${s.label}</span></label>`).join("");
 function renderCatPicks(){
-  const counts=catCounts();const cur=(document.querySelector('input[name=cat]:checked')||{}).value;
+  const counts=catCounts(true);const cur=(document.querySelector('input[name=cat]:checked')||{}).value;
   $("#catPicks").innerHTML=CATS.map(c=>{const n=counts[c.id]||0;const dots=Array.from({length:c.target},(_,i)=>`<i class="${i<n?'on':''}"></i>`).join("");
     return `<label class="cat"><input type="radio" name="cat" value="${c.id}" id="c-${c.id}" ${cur===c.id?'checked':''}><div class="box"><div class="top"><strong>${c.label}</strong>${n>=c.target?'<span class="full">covered</span>':`<span class="plates" aria-label="${n} of ${c.target} claimed">${dots}</span>`}</div><div class="hint">${c.hint}</div></div></label>`}).join("");
 }
@@ -280,22 +343,23 @@ function hostTimeOptions(){
 }
 
 /* ---------- derived data ---------- */
-const people=()=>[...S.rsvps.entries()].map(([id,d])=>({id,...d})).sort((a,b)=>(a.updatedAt||0)-(b.updatedAt||0));
+const people=()=>[...S.rsvps.values()].sort((a,b)=>(a.createdAt||a.updatedAt||0)-(b.createdAt||b.updatedAt||0));
 const attending=()=>people().filter(p=>p.status==="yes"||p.status==="maybe");
 function timeCounts(){const c={};attending().forEach(p=>(p.times||[]).forEach(t=>c[t]=(c[t]||0)+1));return c;}
-function catCounts(){const c={};attending().forEach(p=>{if(p.cat)c[p.cat]=(c[p.cat]||0)+1});return c;}
+function catCounts(excludeMe){const c={};attending().forEach(p=>{if(p.cat&&!(excludeMe&&p.id===S.myId))c[p.cat]=(c[p.cat]||0)+1});return c;}
 function leadingSlot(){const c=timeCounts();let best=null,n=0;SLOTS.forEach(s=>{if((c[s.id]||0)>n){n=c[s.id];best=s.id}});return best||"13";}
 const slotById=id=>SLOTS.find(s=>s.id===id);
 const catById=id=>CATS.find(c=>c.id===id);
 
 /* ---------- render ---------- */
-function renderAll(){renderTally();renderBoard();renderGuests();renderCatPicks();renderFinal();if(S.isOwner)renderHost();}
+function renderAll(){renderTally();renderBoard();renderGuests();renderCatPicks();restoreCatPick();renderFinal();if(S.hostPw)renderHost();}
+function restoreCatPick(){if(S.pendingCat){const c=document.querySelector(`input[name=cat][value="${S.pendingCat}"]`);if(c)c.checked=true;}}
 
 function renderTally(){
   const c=timeCounts();const max=Math.max(1,...Object.values(c));const lead=leadingSlot();const any=Object.keys(c).length>0;
   $("#tally").innerHTML=SLOTS.map(s=>{const n=c[s.id]||0;const who=attending().filter(p=>(p.times||[]).includes(s.id)).map(p=>esc(p.name)).join(", ");
     return `<div class="bar ${any&&s.id===lead?'lead':''}"><span class="t">${s.label}</span><div class="track"><div class="fill" data-w="${(n/max)*100}"></div></div><span class="n">${n}</span>${who?`<div class="who">${who}</div>`:''}</div>`}).join("")
-    +(any?"":`<p class="sub">No votes yet. Pick your times above and they'll show up here.</p>`);
+    +(any?"":`<p class="sub">${S.loaded?"No votes yet. Pick your times above and they'll show up here.":"Loading votes…"}</p>`);
   requestAnimationFrame(()=>document.querySelectorAll(".fill").forEach(f=>f.style.width=f.dataset.w+"%"));
 }
 function renderBoard(){
@@ -308,22 +372,24 @@ function renderGuests(){
   const all=people();const yes=all.filter(p=>p.status==="yes");const maybe=all.filter(p=>p.status==="maybe");
   const heads=yes.reduce((a,p)=>a+(+p.party||1),0);
   $("#stats").innerHTML=`<span><b>${yes.length}</b>coming</span><span><b>${heads}</b>plates to set</span><span><b>${maybe.length}</b>maybe</span>`;
-  $("#guests").innerHTML=all.length?all.map(p=>`<span class="g ${esc(p.status)}"><span class="dot">${esc((p.name||"?").trim().charAt(0).toUpperCase())}</span>${esc(p.name)}${(+p.party||1)>1?` <small style="color:var(--muted)">+${(+p.party)-1}</small>`:''}</span>`).join("")
-    :`<p class="sub">No RSVPs yet. Be the first name on the list.</p>`;
+  $("#guests").innerHTML=all.length?all.map(p=>`<span class="g ${esc(p.status)}"><span class="dot">${esc((p.name||"?").trim().charAt(0).toUpperCase())}</span>${esc(p.name)}${(+p.party||1)>1?` <small style="color:var(--muted)">+${(+p.party)-1}</small>`:''}${p.diet&&S.hostPw?` <small style="color:var(--muted)">· ${esc(p.diet)}</small>`:''}${S.hostPw?`<button class="x" type="button" data-del="${esc(p.id)}" aria-label="Remove ${esc(p.name)}">×</button>`:''}</span>`).join("")
+    :`<p class="sub">${S.loaded?"No RSVPs yet. Be the first name on the list.":"Loading the guest list…"}</p>`;
 }
 function eventStart(){const s=slotById(S.cfg.final?S.cfg.time:leadingSlot())||SLOTS[1];return new Date(2026,10,22,s.h,0,0);}
+const pad=n=>String(n).padStart(2,"0");
+const icsDate=d=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+const icsUtc=d=>d.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"");
 function renderFinal(){
   const box=$("#finalSlot");const f=!!S.cfg.final;
   $("#timeBlock").style.display=f?"none":"flex";$("#pollCard").hidden=f;$("#dishNum").textContent=f?"2":"3";
-  if(!f){box.hidden=true;box.innerHTML="";$("#timeChip").innerHTML="<b>Afternoon</b> · time TBD";return;}
+  if(!f){box.hidden=true;box.innerHTML="";box.dataset.sig="";$("#timeChip").innerHTML="<b>Afternoon</b> · time TBD";return;}
   const s=slotById(S.cfg.time)||SLOTS[1];$("#timeChip").innerHTML=`<b>${s.label}</b>`;
-  const mine=S.myId&&S.rsvps.get(S.myId);const cat=mine&&catById(mine.cat);
-  const start=new Date(2026,10,22,s.h,0,0),end=new Date(start.getTime()+5*3600e3);
-  const fmt=d=>`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}T${String(d.getHours()).padStart(2,"0")}0000`;
-  let tz="";try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||""}catch(e){}
-  const cal=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("Friendsgiving 🦃")}&dates=${fmt(start)}/${fmt(end)}${tz?`&ctz=${encodeURIComponent(tz)}`:""}&location=${encodeURIComponent(S.cfg.address||"")}&details=${encodeURIComponent(S.cfg.note||"")}`;
-  const sig=JSON.stringify([S.cfg.time,S.cfg.address,S.cfg.note,S.cfg.dinner,mine&&mine.dish,mine&&mine.status]);
+  const mine=S.rsvps.get(S.myId);const cat=mine&&catById(mine.cat);
+  const sig=JSON.stringify([S.cfg,mine&&mine.dish,mine&&mine.status,mine&&mine.cat]);
   if(box.dataset.sig===sig)return;box.dataset.sig=sig;
+  const start=new Date(2026,10,22,s.h,0,0),end=new Date(start.getTime()+5*3600e3);
+  let tz="";try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||""}catch(e){}
+  const cal=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("Friendsgiving 🦃")}&dates=${icsDate(start)}/${icsDate(end)}${tz?`&ctz=${encodeURIComponent(tz)}`:""}&location=${encodeURIComponent(S.cfg.address||"")}&details=${encodeURIComponent((S.cfg.note||"")+"\n\n"+location.origin)}`;
   box.hidden=false;
   box.innerHTML=`<div class="invite">
     <div class="eyebrow">It's official</div>
@@ -336,15 +402,24 @@ function renderFinal(){
     ${mine&&mine.status!=="no"&&cat?`<div class="yours">You're bringing <strong>${esc(mine.dish||cat.label.toLowerCase())}</strong> (${cat.label})</div>`:""}
     ${mine&&mine.status==="no"?`<div class="yours">You said you can't make it. Changed your mind? Update your RSVP below.</div>`:""}
     ${!mine?`<div class="yours">Haven't RSVP'd yet? Fill in the form below.</div>`:""}
-    <a class="btn" href="${cal}" target="_blank" rel="noopener">Add to Google Calendar</a>
+    <div class="actions" style="justify-content:center">
+      <a class="btn" href="${cal}" target="_blank" rel="noopener">Add to Google Calendar</a>
+      <button class="btn ghost" type="button" id="icsBtn">Apple / Outlook (.ics)</button>
+    </div>
   </div>`;
+  $("#icsBtn").onclick=()=>{
+    const e=s=>String(s||"").replace(/[\\;,]/g,m=>"\\"+m).replace(/\n/g,"\\n");
+    const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Friendsgiving//EN","BEGIN:VEVENT",`UID:friendsgiving-2026-${S.cfg.updatedAt||0}@${location.host}`,`DTSTAMP:${icsUtc(new Date())}`,
+      `DTSTART:${icsUtc(start)}`,`DTEND:${icsUtc(end)}`,"SUMMARY:Friendsgiving 🦃",`LOCATION:${e(S.cfg.address)}`,`DESCRIPTION:${e((S.cfg.note||"")+"\n\n"+location.origin)}`,"END:VEVENT","END:VCALENDAR"].join("\r\n");
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));a.download="friendsgiving.ics";document.body.appendChild(a);a.click();a.remove();
+  };
 }
 function renderHost(){
-  $("#hostCard").hidden=false;hostTimeOptions();
-  if(!S.hostPrefilled&&S.cfgLoaded){S.hostPrefilled=true;$("#hDinner").value=S.cfg.dinner||"";$("#hAddr").value=S.cfg.address||"";$("#hNote").value=S.cfg.note||"";if(S.cfg.time)$("#hTime").value=S.cfg.time;}
+  $("#loginCard").hidden=true;$("#hostCard").hidden=false;$("#hostLink").hidden=true;hostTimeOptions();
+  if(!S.hostPrefilled&&S.loaded){S.hostPrefilled=true;$("#hDinner").value=S.cfg.dinner||"";$("#hAddr").value=S.cfg.address||"";$("#hNote").value=S.cfg.note||"";if(S.cfg.time)$("#hTime").value=S.cfg.time;}
   $("#sendBtn").textContent=S.cfg.final?"Update the invite":"Send the final invite";
   $("#reopenBtn").hidden=!S.cfg.final;
-  const wrap=$("#msgWrap");wrap.hidden=!S.cfg.final;if(S.cfg.final)$("#msg").textContent=groupMsg();
+  $("#msgWrap").hidden=!S.cfg.final;if(S.cfg.final)$("#msg").textContent=groupMsg();
 }
 function groupMsg(){
   const s=slotById(S.cfg.time)||SLOTS[1];
@@ -352,32 +427,49 @@ function groupMsg(){
   if(S.cfg.address)lines.push(`📍 ${S.cfg.address}`);
   if(S.cfg.note)lines.push("",S.cfg.note);
   const att=attending();if(att.length){lines.push("","Who's bringing what:");CATS.forEach(c=>{const l=att.filter(p=>p.cat===c.id);if(l.length)lines.push(`• ${c.label}: ${l.map(p=>`${p.name} (${p.dish||"TBD"})`).join(", ")}`)});}
-  lines.push("","Open the invite page for the details and to update your RSVP.");
+  lines.push("",`Full invite + RSVP: ${location.origin}`);
   return lines.join("\n");
 }
 
 /* ---------- countdown ---------- */
 function tick(){let ms=eventStart()-new Date();if(ms<0)ms=0;const d=Math.floor(ms/864e5),h=Math.floor(ms/36e5)%24,m=Math.floor(ms/6e4)%60,s=Math.floor(ms/1e3)%60;
-  $("#cd-d").textContent=d;$("#cd-h").textContent=String(h).padStart(2,"0");$("#cd-m").textContent=String(m).padStart(2,"0");$("#cd-s").textContent=String(s).padStart(2,"0");}
+  $("#cd-d").textContent=d;$("#cd-h").textContent=pad(h);$("#cd-m").textContent=pad(m);$("#cd-s").textContent=pad(s);}
 tick();setInterval(tick,1000);
 
-/* ---------- toast & banner ---------- */
-let tt;function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>el.classList.remove("show"),3200);}
+/* ---------- toast, banner, copy ---------- */
+let tt;function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>el.classList.remove("show"),3400);}
 function banner(t){const b=$("#banner");if(!t){b.hidden=true;return}b.textContent=t;b.hidden=false;}
-function setReadOnly(msg){S.readOnly=true;banner(msg);document.querySelectorAll("#rsvp input,#rsvp select,#rsvp button").forEach(e=>e.disabled=true);}
+function copy(text,el,ok){
+  const sel=()=>{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Selected. Copy it with your keyboard.")};
+  try{navigator.clipboard.writeText(text).then(()=>toast(ok),sel)}catch(e){sel()}
+}
+
+/* ---------- load + poll ---------- */
+async function load(){
+  try{
+    const st=await api("/api/state");
+    S.cfg=st.event||{};S.rsvps=new Map((st.rsvps||[]).map(r=>[r.id,r]));S.loaded=true;banner("");
+    const mine=S.rsvps.get(S.myId);
+    if(mine){$("#editLink").hidden=false;$("#editUrl").textContent=editUrl();}
+    if(!S.prefilled&&!S.dirty&&mine){S.prefilled=true;prefill(mine);}
+    renderAll();
+  }catch(e){banner(e.status===503?e.message:"Couldn't load the latest RSVPs. Retrying…");}
+}
+load();
+setInterval(()=>{if(document.visibilityState==="visible")load()},10000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")load()});
 
 /* ---------- form ---------- */
 $("#rsvp").addEventListener("input",()=>S.dirty=true);
-$("#rsvp").addEventListener("change",e=>{S.dirty=true;if(e.target.name==="cat"){const c=catById(e.target.value);$("#dish").placeholder=`e.g. ${c.hint.split(",")[0]}`;}});
+$("#rsvp").addEventListener("change",e=>{S.dirty=true;if(e.target.name==="cat"){S.pendingCat=e.target.value;const c=catById(e.target.value);$("#dish").placeholder=`e.g. ${c.hint.split(",")[0]}`;}});
 function prefill(d){
-  if(!d)return;$("#name").value=d.name||"";$("#party").value=String(d.party||1);
+  $("#name").value=d.name||"";$("#party").value=String(d.party||1);
   const st=document.querySelector(`input[name=status][value="${d.status}"]`);if(st)st.checked=true;
   document.querySelectorAll("input[name=times]").forEach(i=>i.checked=(d.times||[]).includes(i.value));
-  renderCatPicks();const c=document.querySelector(`input[name=cat][value="${d.cat}"]`);if(c)c.checked=true;
-  $("#dish").value=d.dish||"";$("#diet").value=d.diet||"";$("#saveBtn").textContent="Update my RSVP";
+  S.pendingCat=d.cat||"";$("#dish").value=d.dish||"";$("#diet").value=d.diet||"";$("#saveBtn").textContent="Update my RSVP";
 }
 $("#rsvp").addEventListener("submit",async e=>{
-  e.preventDefault();if(S.readOnly)return;
+  e.preventDefault();
   const name=$("#name").value.trim();const status=(document.querySelector("input[name=status]:checked")||{}).value;
   const times=[...document.querySelectorAll("input[name=times]:checked")].map(i=>i.value);
   const cat=(document.querySelector("input[name=cat]:checked")||{}).value||"";const dish=$("#dish").value.trim();
@@ -386,78 +478,70 @@ $("#rsvp").addEventListener("submit",async e=>{
   if(!status){note.textContent="Pick Count me in, Maybe, or Can't make it.";return}
   if(status!=="no"&&!S.cfg.final&&!times.length){note.textContent="Pick at least one time that works for you.";return}
   if(status!=="no"&&!cat){note.textContent="Choose what you'll bring.";return}
-  if(!S.db||!S.myId){note.textContent="Sign in to claude.ai to save your RSVP.";return}
   note.textContent="";const btn=$("#saveBtn");btn.disabled=true;
-  const prev=S.rsvps.get(S.myId)||{};
-  const doc={name,status,party:+$("#party").value||1,times:S.cfg.final?(prev.times||times):times,cat:status==="no"?"":cat,dish:status==="no"?"":dish,diet:$("#diet").value.trim(),updatedAt:Date.now()};
-  try{await S.db.doc("rsvps/"+S.myId).set(doc);S.dirty=false;$("#saveBtn").textContent="Update my RSVP";
+  try{
+    await api("/api/rsvp",{id:S.myId,secret:S.secret,name,status,party:+$("#party").value||1,times,cat,dish,diet:$("#diet").value.trim()});
+    S.dirty=false;S.prefilled=true;$("#saveBtn").textContent="Update my RSVP";
     toast(status==="yes"?"You're on the list. See you Sunday!":status==="maybe"?"Saved as a maybe. Let us know soon!":"Got it. We'll miss you!");
     if(status!=="no"){const r=btn.getBoundingClientRect();burst(r.left+r.width/2,r.top);}
-  }catch(err){
-    if(err&&err.code==="invalid_argument")setReadOnly("You can see the plans but can't RSVP from this account. Ask the host to share the page with you as an editor.");
-    else note.textContent="Couldn't save just now. Check your connection and try again.";
-  }finally{btn.disabled=S.readOnly;}
+    await load();
+  }catch(err){note.textContent=err.message;}
+  finally{btn.disabled=false;}
 });
+$("#copyEdit").addEventListener("click",()=>copy(editUrl(),$("#editUrl"),"Copied. Keep it somewhere safe."));
 
-/* ---------- host actions ---------- */
+/* ---------- host ---------- */
+async function hostLogin(pw,quiet){
+  try{await api("/api/event",{password:pw,action:"check"});S.hostPw=pw;ls.set("fg_host",pw);renderAll();if(!quiet)toast("Host mode unlocked.");return true;}
+  catch(e){if(!quiet)$("#loginErr").textContent=e.message;else ls.del("fg_host");return false;}
+}
+$("#hostLink").addEventListener("click",()=>{$("#loginCard").hidden=false;$("#hostPw").focus();$("#loginCard").scrollIntoView({behavior:"smooth",block:"center"});});
+$("#loginForm").addEventListener("submit",e=>{e.preventDefault();$("#loginErr").textContent="";hostLogin($("#hostPw").value);});
+$("#logoutBtn").addEventListener("click",()=>{S.hostPw=null;ls.del("fg_host");$("#hostCard").hidden=true;$("#hostLink").hidden=false;renderAll();});
+if(new URLSearchParams(location.search).has("host"))$("#loginCard").hidden=false;
+{const saved=ls.get("fg_host");if(saved)hostLogin(saved,true);}
+
 async function saveCfg(patch){
-  const cfg={time:S.cfg.time||leadingSlot(),dinner:"",address:"",note:"",final:false,...S.cfg,...patch,updatedAt:Date.now()};
-  await S.db.doc("event/main").set(cfg);
+  const cfg={password:S.hostPw,action:"save",time:$("#hTime").value,dinner:$("#hDinner").value.trim(),address:$("#hAddr").value.trim(),note:$("#hNote").value.trim(),final:!!S.cfg.final,...patch};
+  const r=await api("/api/event",cfg);S.cfg=r.event;renderAll();
 }
 $("#sendBtn").addEventListener("click",async()=>{
   const b=$("#sendBtn");b.disabled=true;
-  try{await saveCfg({final:true,time:$("#hTime").value,dinner:$("#hDinner").value.trim(),address:$("#hAddr").value.trim(),note:$("#hNote").value.trim()});
-    toast("Invite sent. Everyone sees it at the top of the page.");window.scrollTo({top:0,behavior:"smooth"});burst(innerWidth/2,120);}
-  catch(e){toast("Couldn't save the invite. Try again.");}finally{b.disabled=false}
+  try{await saveCfg({final:true});toast("Invite sent. Everyone sees it at the top of the page.");window.scrollTo({top:0,behavior:"smooth"});burst(innerWidth/2,120);}
+  catch(e){toast(e.message);}finally{b.disabled=false}
 });
-$("#reopenBtn").addEventListener("click",async()=>{try{await saveCfg({final:false});toast("Voting is open again.")}catch(e){toast("Couldn't reopen voting.")}});
-$("#copyBtn").addEventListener("click",()=>{const t=$("#msg").textContent;
-  const sel=()=>{const r=document.createRange();r.selectNodeContents($("#msg"));const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Selected. Copy it with your keyboard.")};
-  try{navigator.clipboard.writeText(t).then(()=>toast("Copied. Paste it in the group chat!"),sel)}catch(e){sel()}});
-
-/* ---------- data ---------- */
-(async()=>{
-  renderAll();
-  const c=window.claude;
-  if(!c||!c.use){setReadOnly("Open this page on claude.ai to RSVP.");return}
-  const [db,user]=await Promise.all([c.use("db"),c.use("user")]);
-  S.user=user;S.isOwner=user?await user.isOwner():false;
-  if(!db){setReadOnly("Sign in to claude.ai to see the plans and RSVP.");return}
-  S.db=db;S.myId=user?await user.id():null;
-  if(!S.myId){setReadOnly("Sign in to claude.ai to RSVP.");}
-  else{const can=await user.can("data.write");if(can===false)setReadOnly("You can see the plans but can't RSVP from this account. Ask the host to share the page with you as an editor.");}
-  if(!S.dirty&&user){try{const n=await user.name();if(n&&!$("#name").value)$("#name").value=n.split(" ")[0];}catch(e){}}
-  if(S.isOwner)renderHost();
-  let loaded=false;const timer=setTimeout(()=>{if(!loaded)banner("Still loading everyone's RSVPs… if this sticks, check your connection.")},10000);
-  db.collection("rsvps").onSnapshot(snap=>{
-    S.rsvps=new Map(snap.docs.filter(d=>d.exists).map(d=>[d.id,d.data()]));
-    if(!snap.metadata.fromCache&&!loaded){loaded=true;clearTimeout(timer);if(!S.readOnly)banner("");}
-    if(!S.prefilled&&!S.dirty&&S.myId&&S.rsvps.has(S.myId)){S.prefilled=true;prefill(S.rsvps.get(S.myId));}
-    renderAll();
-  },err=>{clearTimeout(timer);banner("Couldn't load RSVPs. Reload the page to try again.")});
-  db.doc("event/main").onSnapshot(snap=>{S.cfg=snap.exists?snap.data():{};S.cfgLoaded=true;renderAll();},()=>{});
-})();
+$("#reopenBtn").addEventListener("click",async()=>{try{await saveCfg({final:false});toast("Voting is open again.")}catch(e){toast(e.message)}});
+$("#copyBtn").addEventListener("click",()=>copy($("#msg").textContent,$("#msg"),"Copied. Paste it in the group chat!"));
+$("#guests").addEventListener("click",async e=>{
+  const id=e.target.closest("[data-del]")?.dataset.del;if(!id||!S.hostPw)return;
+  const p=S.rsvps.get(id);if(!confirm(`Remove ${p?p.name:"this guest"}'s RSVP?`))return;
+  try{await api("/api/event",{password:S.hostPw,action:"deleteRsvp",id});toast("RSVP removed.");load();}catch(err){toast(err.message)}
+});
 
 /* ---------- falling leaves ---------- */
 const cv=$("#leaves"),ctx=cv.getContext("2d");let W=0,H=0,DPR=1;
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
 const COLORS=["#f3ab3c","#e2692c","#c9364f","#b5542a","#d98b2b","#8f2f2a"];
 const MAPLE=[[0,-1],[.15,-.55],[.45,-.72],[.38,-.35],[.82,-.42],[.6,-.1],[.76,.05],[.35,.15],[.42,.38],[.08,.3],[0,.55],[-.08,.3],[-.42,.38],[-.35,.15],[-.76,.05],[-.6,-.1],[-.82,-.42],[-.38,-.35],[-.45,-.72],[-.15,-.55]];
-function resize(){DPR=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
-resize();addEventListener("resize",resize);
+function resize(){DPR=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);if(reduce)drawStatic();}
 const mk=(x,y,burst)=>({x:x??Math.random()*W,y:y??-20-Math.random()*H,s:7+Math.random()*11,c:COLORS[Math.random()*COLORS.length|0],
   vy:burst?-(2+Math.random()*4):.35+Math.random()*.7,vx:burst?(Math.random()-.5)*6:0,r:Math.random()*6.28,vr:(Math.random()-.5)*.03,
   ph:Math.random()*6.28,sw:.4+Math.random()*.9,fl:.01+Math.random()*.03,maple:Math.random()<.7,a:burst?1:.45+Math.random()*.4,burst:!!burst,life:burst?220:Infinity});
-let L=Array.from({length:W<500?16:28},()=>mk(undefined,Math.random()*H));
+let L=[];
 function drawLeaf(p,t){ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.scale(Math.cos(t*p.fl+p.ph),1);ctx.globalAlpha=p.a*(p.burst?Math.min(1,p.life/60):1);ctx.fillStyle=p.c;ctx.beginPath();
   if(p.maple){MAPLE.forEach(([x,y],i)=>i?ctx.lineTo(x*p.s,y*p.s):ctx.moveTo(x*p.s,y*p.s));ctx.closePath();ctx.fill();ctx.strokeStyle=p.c;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(0,.3*p.s);ctx.lineTo(0,p.s*1.05);ctx.stroke();}
   else{ctx.ellipse(0,0,p.s*.45,p.s,0,0,6.28);ctx.fill();ctx.strokeStyle="rgba(31,21,25,.35)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,-p.s);ctx.lineTo(0,p.s);ctx.stroke();}
   ctx.restore();}
+function drawStatic(){ctx.clearRect(0,0,W,H);L.forEach(p=>drawLeaf(p,0));}
+resize();addEventListener("resize",resize);
+L=Array.from({length:W<500?16:28},()=>mk(undefined,Math.random()*H));
 let t=0;function frame(){t++;ctx.clearRect(0,0,W,H);
   for(const p of L){if(p.burst){p.vy+=.08;p.vx*=.985;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr*4;p.life--;}
     else{p.y+=p.vy;p.x+=Math.sin(t*.012+p.ph)*p.sw;p.r+=p.vr;if(p.y>H+30){Object.assign(p,mk(undefined,-30));}}
     drawLeaf(p,t);}
   L=L.filter(p=>p.life>0);requestAnimationFrame(frame);}
-if(reduce){L.forEach(p=>drawLeaf(p,0));}else requestAnimationFrame(frame);
+if(reduce)drawStatic();else requestAnimationFrame(frame);
 function burst(x,y){if(reduce)return;for(let i=0;i<34;i++)L.push(mk(x+(Math.random()-.5)*40,y,true));}
 </script>
+</body>
+</html>
