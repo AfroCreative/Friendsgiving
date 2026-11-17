@@ -1,130 +1,115 @@
 // Shared helpers for the API routes. Files starting with "_" are not deployed as routes.
-// Data lives in a Google Sheet, reached through the Apps Script web app in google-apps-script/Code.gs.
+// Data lives in Supabase (tables from supabase/setup.sql), reached through its REST API with the
+// service role key, which stays on the server. Guests' browsers never talk to Supabase directly.
 import crypto from "node:crypto";
 
-export const SLOTS = { "12": "12:00 PM", "13": "1:00 PM", "14": "2:00 PM", "15": "3:00 PM", "16": "4:00 PM" };
-export const CATS = { main: "Mains", side: "Sides", dessert: "Desserts", app: "Snacks & starters", drink: "Drinks", supply: "Supplies" };
+export const SLOT_IDS = ["12", "13", "14", "15", "16"];
+export const CAT_IDS = ["main", "side", "dessert", "app", "drink", "supply"];
 export const STATUSES = { yes: "Coming", maybe: "Maybe", no: "Can't make it" };
-export const SLOT_IDS = Object.keys(SLOTS);
-export const CAT_IDS = Object.keys(CATS);
 export const MAX_RSVPS = 200;
 export const ID_RE = /^[A-Za-z0-9]{8,40}$/;
 
-const RSVP_SHEET = "RSVPs";
-const RSVP_HEADER = ["ID", "Name", "Status", "Party size", "Times that work", "Bringing", "Dish", "Dietary notes", "First RSVP", "Last updated", "Edit key (do not change)"];
-const EVENT_SHEET = "Event";
-const EVENT_HEADER = ["Setting", "Value"];
+// Vercel's Supabase integration sets these automatically.
+const SB_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
+const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || "";
+const hasDb = Boolean(SB_URL && SB_KEY);
 
-const SHEET_URL = process.env.SHEET_WEBAPP_URL;
-const SHEET_SECRET = process.env.SHEET_SECRET;
-const hasSheet = Boolean(SHEET_URL && SHEET_SECRET);
-
-// Local development without a sheet keeps data in memory.
+// Local development without Supabase keeps data in memory.
 const mem = globalThis.__fgMem || (globalThis.__fgMem = { rsvps: new Map(), event: {} });
 
 export class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
 
-/* ---------- Google Sheet transport ---------- */
-async function sheet(body) {
-  if (!hasSheet) {
-    if (process.env.VERCEL) throw new HttpError(503, "The Google Sheet isn't connected yet. Add SHEET_WEBAPP_URL and SHEET_SECRET in Vercel and redeploy.");
+/* ---------- Supabase REST transport ---------- */
+async function sb(path, { method = "GET", body, prefer } = {}) {
+  if (!hasDb) {
+    if (process.env.VERCEL) throw new HttpError(503, "The database isn't connected yet. In Vercel, connect Supabase under Storage (it adds SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY), then redeploy.");
     return null;
   }
+  const headers = { apikey: SB_KEY, "Content-Type": "application/json" };
+  if (SB_KEY.startsWith("eyJ")) headers.Authorization = `Bearer ${SB_KEY}`; // legacy JWT keys; new sb_secret_ keys go in apikey only
+  if (prefer) headers.Prefer = prefer;
   let r;
   try {
-    r = await fetch(SHEET_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ secret: SHEET_SECRET, ...body }),
-      redirect: "follow",
-    });
+    r = await fetch(`${SB_URL}/rest/v1/${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
   } catch {
-    throw new HttpError(502, "Couldn't reach the Google Sheet. Try again in a moment.");
+    throw new HttpError(502, "Couldn't reach the database. Try again in a moment.");
   }
   const text = await r.text();
-  let j;
-  try { j = JSON.parse(text); } catch {
-    throw new HttpError(502, "Google sent back a web page instead of data. In the Apps Script deployment, set 'Who has access' to 'Anyone' and check SHEET_WEBAPP_URL ends in /exec.");
+  let j = null;
+  try { j = text ? JSON.parse(text) : null; } catch { /* non-JSON */ }
+  if (!r.ok) {
+    const code = j?.code || "";
+    const msg = j?.message || text || r.statusText;
+    if (code === "PGRST205" || code === "42P01" || /could not find the table|does not exist/i.test(msg)) {
+      throw new HttpError(503, "The database tables aren't set up yet. Run supabase/setup.sql in Supabase's SQL Editor.");
+    }
+    if (r.status === 401 || r.status === 403) throw new HttpError(503, "The database rejected the server's key. Check SUPABASE_SERVICE_ROLE_KEY in Vercel and redeploy.");
+    console.error("Supabase error", r.status, msg);
+    throw new HttpError(502, "Database error. Try again in a moment.");
   }
-  if (j.error) throw new HttpError(502, j.error);
-  return j;
+  return j ?? [];
 }
 
 /* ---------- row <-> object ---------- */
-const key = (map, label) => Object.keys(map).find((k) => map[k] === String(label).trim()) || "";
-const iso = (ms) => (ms ? new Date(ms).toISOString().replace("T", " ").slice(0, 19) + " UTC" : "");
-const fromIso = (s) => { const t = Date.parse(String(s).replace(" UTC", "Z").replace(" ", "T")); return Number.isFinite(t) ? t : 0; };
+const ms = (t) => { const v = Date.parse(t || ""); return Number.isFinite(v) ? v : 0; };
+const isoOf = (v) => new Date(v || Date.now()).toISOString();
 
-function rsvpToRow(id, r) {
-  return [id, r.name, STATUSES[r.status] || r.status, String(r.party || 1),
-    (r.times || []).map((t) => SLOTS[t]).filter(Boolean).join(", "),
-    CATS[r.cat] || "", r.dish || "", r.diet || "", iso(r.createdAt), iso(r.updatedAt), r.secretHash || ""];
-}
-function rowToRsvp(row) {
-  const [id, name, status, party, times, cat, dish, diet, created, updated, secretHash] = row.map((v) => String(v ?? ""));
-  return [id.trim(), {
-    name: name.trim(),
-    status: key(STATUSES, status) || (status in STATUSES ? status : "yes"),
-    party: Math.min(9, Math.max(1, parseInt(party, 10) || 1)),
-    times: times.split(",").map((t) => key(SLOTS, t)).filter(Boolean),
-    cat: key(CATS, cat),
-    dish: dish.trim(),
-    diet: diet.trim(),
-    createdAt: fromIso(created),
-    updatedAt: fromIso(updated),
-    secretHash: secretHash.trim(),
-  }];
-}
-function eventToRows(e) {
-  return [
-    ["Start time", SLOTS[e.time] || ""],
-    ["Dinner time", e.dinner || ""],
-    ["Address", e.address || ""],
-    ["Note", e.note || ""],
-    ["Invite sent", e.final ? "Yes" : "No"],
-    ["Last updated", iso(e.updatedAt)],
-  ];
-}
-function rowsToEvent(rows) {
-  const m = Object.fromEntries(rows.map((r) => [String(r[0]).trim(), String(r[1] ?? "")]));
-  if (!rows.length) return {};
+function rowToRsvp(r) {
   return {
-    time: key(SLOTS, m["Start time"] || ""),
-    dinner: m["Dinner time"] || "",
-    address: m["Address"] || "",
-    note: m["Note"] || "",
-    final: /^(yes|true)$/i.test(m["Invite sent"] || ""),
-    updatedAt: fromIso(m["Last updated"] || ""),
+    name: r.name || "",
+    status: r.status in STATUSES ? r.status : "yes",
+    party: r.party || 1,
+    times: (r.times || []).filter((t) => SLOT_IDS.includes(t)),
+    cat: CAT_IDS.includes(r.cat) ? r.cat : "",
+    dish: r.dish || "",
+    diet: r.diet || "",
+    createdAt: ms(r.created_at),
+    updatedAt: ms(r.updated_at),
+    secretHash: r.secret_hash || "",
   };
+}
+function rowToEvent(r) {
+  if (!r) return {};
+  return { time: r.time || "13", dinner: r.dinner || "", address: r.address || "", note: r.note || "", final: !!r.final, updatedAt: ms(r.updated_at) };
 }
 
 /* ---------- store API used by the routes ---------- */
-// One round trip: every RSVP and the event settings.
 export async function loadAll() {
-  const j = await sheet({ op: "read", sheets: [{ name: RSVP_SHEET, header: RSVP_HEADER }, { name: EVENT_SHEET, header: EVENT_HEADER }] });
-  if (!j) return { rsvps: Object.fromEntries(mem.rsvps), event: { ...mem.event } };
+  const [rows, ev] = await Promise.all([
+    sb("fg_rsvps?select=*&order=created_at.asc&limit=1000"),
+    sb("fg_event?id=eq.1&select=*"),
+  ]);
+  if (!rows) return { rsvps: Object.fromEntries(mem.rsvps), event: { ...mem.event } };
   const rsvps = {};
-  for (const row of j.data[RSVP_SHEET] || []) {
-    const [id, r] = rowToRsvp(row);
-    if (id) rsvps[id] = r;
-  }
-  return { rsvps, event: rowsToEvent(j.data[EVENT_SHEET] || []) };
+  for (const r of rows) rsvps[r.id] = rowToRsvp(r);
+  return { rsvps, event: rowToEvent(ev[0]) };
 }
 
 export async function putRsvp(id, r) {
-  const j = await sheet({ op: "upsert", sheet: RSVP_SHEET, header: RSVP_HEADER, row: rsvpToRow(id, r) });
+  const j = await sb("fg_rsvps?on_conflict=id", {
+    method: "POST",
+    prefer: "resolution=merge-duplicates,return=minimal",
+    body: {
+      id, name: r.name, status: r.status, party: r.party, times: r.times, cat: r.cat, dish: r.dish, diet: r.diet,
+      secret_hash: r.secretHash, created_at: isoOf(r.createdAt), updated_at: isoOf(r.updatedAt),
+    },
+  });
   if (!j) mem.rsvps.set(id, r);
 }
 
 export async function deleteRsvp(id) {
-  const j = await sheet({ op: "delete", sheet: RSVP_SHEET, header: RSVP_HEADER, id });
+  const j = await sb(`fg_rsvps?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "return=minimal" });
   if (!j) mem.rsvps.delete(id);
 }
 
 export async function putEvent(e) {
-  const j = await sheet({ op: "replace", sheet: EVENT_SHEET, header: EVENT_HEADER, rows: eventToRows(e) });
+  const j = await sb("fg_event?on_conflict=id", {
+    method: "POST",
+    prefer: "resolution=merge-duplicates,return=minimal",
+    body: { id: 1, time: e.time, dinner: e.dinner, address: e.address, note: e.note, final: e.final, updated_at: isoOf(e.updatedAt) },
+  });
   if (!j) mem.event = { ...e };
 }
 
@@ -146,10 +131,9 @@ export function checkHostPassword(given) {
   if (!crypto.timingSafeEqual(a, b)) throw new HttpError(401, "That's not the host password.");
 }
 
-// Strip control characters and anything that could make a sheet cell a formula.
-const noFormula = (s) => s.replace(/^[=+\-@\s]+/, "");
-export const str = (v, max) => noFormula(String(v ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").trim()).slice(0, max);
-export const multiline = (v, max) => noFormula(String(v ?? "").replace(/\r/g, "").replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, " ").trim()).slice(0, max);
+// Strip control characters and trim to a maximum length.
+export const str = (v, max) => String(v ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, max);
+export const multiline = (v, max) => String(v ?? "").replace(/\r/g, "").replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, " ").trim().slice(0, max);
 
 export async function readBody(req) {
   if (req.body && typeof req.body === "object") return req.body;

@@ -6,45 +6,26 @@ An invite and RSVP site for Friendsgiving on **Sunday, Nov 22**. Friends RSVP, v
 - `api/state.js`: `GET`, returns the event details and every RSVP
 - `api/rsvp.js`: `POST`, saves a guest's own RSVP
 - `api/event.js`: `POST`, host-only actions (needs the host password)
-- `api/_store.js`: shared helpers and the connection to the Google Sheet
-- `google-apps-script/Code.gs`: a small script you paste into your Google Sheet so the site can read and write it
+- `api/_store.js`: shared helpers and the connection to Supabase
+- `supabase/setup.sql`: creates the database tables (run once)
 
-No build step and no npm packages. All RSVPs land in a Google Sheet you own, one row per guest, so you can read them there any time.
+No build step and no npm packages. RSVPs are stored in your Supabase database. Only the site's server can reach it; guests' browsers never talk to Supabase directly.
 
-## Set up the Google Sheet
+## Set up (Vercel + Supabase)
 
-1. **Create a sheet.** Go to [sheets.new](https://sheets.new) and name it something like "Friendsgiving RSVPs".
-2. **Add the script.** In the sheet, open **Extensions → Apps Script**. Delete what's there and paste in the whole of `google-apps-script/Code.gs` from this repo.
-3. **Pick a secret.** On the line `const SECRET = "PASTE-…"`, replace the text inside the quotes with a long random string (at least 30 letters and numbers; a password generator works well). Keep it handy for step 7. Click **Save** (the disk icon).
-4. **Deploy it as a web app.** Click **Deploy → New deployment**, click the gear next to "Select type" and choose **Web app**. Set:
-   - **Execute as:** Me
-   - **Who has access:** Anyone
+1. **Import the repo.** In Vercel, go to **Add New → Project** and import this GitHub repo. Leave Framework Preset as **Other** and the build settings empty.
+2. **Connect Supabase.** In the Vercel project, open **Storage**, and create or connect a Supabase database to this project. Vercel adds `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (among others) to the project automatically.
+3. **Create the tables.** Open the database in Supabase (from Vercel's Storage tab, **Open in Supabase**), go to **SQL Editor → New query**, paste in all of `supabase/setup.sql`, and click **Run**. You should see "Success. No rows returned".
+4. **Set your host password.** In Vercel go to **Settings → Environment Variables** and add `HOST_PASSWORD` with a password only you know.
+5. **Redeploy.** Go to **Deployments → ⋯ → Redeploy** so the variables take effect.
 
-   Click **Deploy**. Google asks you to authorize access: choose your account, then **Advanced → Go to (project name)** and **Allow**. This lets the script edit *your* sheet.
-5. **Copy the Web app URL.** It ends in `/exec`.
+Open your `*.vercel.app` URL and RSVP yourself as a test. If something isn't set up, the page shows a message naming the step to check.
 
-The script's URL only works with your secret, so "Anyone" here doesn't let strangers read your sheet. The `RSVPs` and `Event` tabs appear by themselves after the first RSVP.
-
-> If you edit the script later, use **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**, so the URL stays the same.
-
-## Deploy on Vercel
-
-6. **Import the repo.** In Vercel, go to **Add New → Project** and import this GitHub repo. Leave Framework Preset as **Other** and the build settings empty.
-7. **Add three environment variables** (during import, or later under **Settings → Environment Variables**):
-
-   | Name | Value |
-   |---|---|
-   | `SHEET_WEBAPP_URL` | the Web app URL from step 5 |
-   | `SHEET_SECRET` | the same secret you put in the script in step 3 |
-   | `HOST_PASSWORD` | a password only you know, to unlock the host panel |
-
-8. **Deploy** (or, if it was already deployed, **Deployments → ⋯ → Redeploy** so the variables take effect).
-
-Open your `*.vercel.app` URL and RSVP yourself as a test. A row should appear in the `RSVPs` tab of your sheet. If the page shows an error instead, it explains which step to check.
+To see the RSVPs in Supabase, open **Table Editor** and pick `fg_guest_list` (or `fg_rsvps` for the raw rows).
 
 > Vercel deploys your repo's production branch. If your site only shows up as a "Preview" deployment, set **Settings → Git → Production Branch** to the branch this code is on, or merge it into `main`.
 
-> If you used Upstash Redis before, you can remove it from the project. The site no longer uses it.
+> If you set up Upstash Redis or a Google Sheet earlier, you can remove them along with the `KV_*` and `SHEET_*` variables. The site no longer uses them.
 
 ## Using it
 
@@ -56,13 +37,13 @@ Open your `*.vercel.app` URL and RSVP yourself as a test. A row should appear in
   - remove an RSVP with the × next to a guest's name (you also see their dietary notes)
   - **Reopen voting** if plans change
 
-You can also fix things directly in the sheet, like a typo in someone's dish. Don't change the `ID` or `Edit key` columns, and keep times, categories and statuses spelled as the site writes them.
+You can also fix things directly in Supabase's Table Editor (`fg_rsvps`), like a typo in someone's dish. Don't change the `id` or `secret_hash` columns.
 
-To change the time options or potluck categories, edit `SLOTS` / `CATS` in `index.html` **and** in `api/_store.js`.
+To change the time options or potluck categories, edit `SLOTS` / `CATS` in `index.html` **and** `SLOT_IDS` / `CAT_IDS` in `api/_store.js`.
 
 ## Run locally
 
-Without the sheet variables, the API keeps data in memory, which is handy for trying things out:
+Without the Supabase variables, the API keeps data in memory, which is handy for trying things out:
 
 ```bash
 npm i -g vercel
