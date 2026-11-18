@@ -31,7 +31,7 @@ export default route(async (req, res) => {
   }
 
   const going = status !== "no";
-  const times = []; // the time is fixed (4–8 PM), so there's nothing to vote on
+  const times = []; // the time is fixed (4–9 PM), so there's nothing to vote on
   const cat = going && CAT_IDS.includes(b.cat) ? b.cat : "";
   if (going && !cat) throw new HttpError(400, "Choose what you'll bring.");
   if (going && LINA_ONLY.has(cat) && !isLina(name)) throw new HttpError(403, "Habesha food is Lina-only. House rules.");

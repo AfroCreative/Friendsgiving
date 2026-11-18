@@ -209,9 +209,9 @@ body{margin:0}
     <h1 id="title" aria-label="Friendsgiving">Friendsgiving</h1>
     <div class="datechip">
       <span class="chip"><b>SUN</b> Nov 22, 2026</span>
-      <span class="chip" id="timeChip"><b>4–8 PM</b></span>
+      <span class="chip" id="timeChip"><b>4–9 PM</b></span>
     </div>
-    <p class="lede">Good food, better people. Tell us you're coming and claim a dish so we don't end up with six bowls of mashed potatoes.</p>
+    <p class="lede">Good food, better people. Drop by anytime from 4 to 9: head home early or stay late, either way works. Tell us you're coming and claim a dish so we don't end up with six bowls of mashed potatoes.</p>
     <div class="countdown" aria-label="Countdown to Friendsgiving">
       <div><strong id="cd-d">–</strong><span>days</span></div>
       <div><strong id="cd-h">–</strong><span>hrs</span></div>
@@ -277,7 +277,7 @@ body{margin:0}
   <section class="card host" id="hostCard" hidden>
     <span class="tag">Host only</span>
     <h2>Lock it in and send the invite</h2>
-    <p class="sub">Add the address and any details. When you send it, everyone who opens this page sees the final invitation (Sunday, 4:00–8:00 PM) at the top.</p>
+    <p class="sub">Add the address and any details. When you send it, everyone who opens this page sees the final invitation (Sunday, 4:00–9:00 PM) at the top.</p>
     <div><label class="lbl" for="hDinner">Dinner served at (optional)</label><input id="hDinner" type="text" maxlength="30" placeholder="e.g. 5:30 PM"></div>
     <div><label class="lbl" for="hAddr">Address</label><textarea id="hAddr" maxlength="200" placeholder="Street, apartment, buzzer code"></textarea></div>
     <div><label class="lbl" for="hNote">A note for everyone (optional)</label><textarea id="hNote" maxlength="300" placeholder="Parking is on the street. Bring a container for leftovers!"></textarea></div>
@@ -299,8 +299,9 @@ body{margin:0}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const START=new Date(2026,10,22,16,0,0), END=new Date(2026,10,22,20,0,0); // Sunday, Nov 22, 4:00–8:00 PM
-const TIME_LABEL="4:00 – 8:00 PM";
+const START=new Date(2026,10,22,16,0,0), END=new Date(2026,10,22,21,0,0); // Sunday, Nov 22, 4:00–9:00 PM
+const TIME_LABEL="4:00 – 9:00 PM";
+const COME_GO="Come and go as you like: head home early or stay late. Either way works.";
 // The menu. Each item can be claimed by one guest; "other" can be picked by anyone.
 const MENU=[
   {label:"Main",items:[{id:"chicken",label:"Chicken"}]},
@@ -417,6 +418,7 @@ function renderFinal(){
     <div class="eyebrow">It's official</div>
     <h2>Friendsgiving</h2>
     <div class="when">Sunday, Nov 22 · ${TIME_LABEL}</div>
+    <div class="note">${COME_GO}</div>
     ${S.cfg.dinner?`<div class="note">Dinner is served at ${esc(S.cfg.dinner)}</div>`:""}
     <div class="perf" aria-hidden="true"></div>
     ${S.cfg.address?`<div class="where"><strong>Where</strong><br>${esc(S.cfg.address)}</div>`:""}
@@ -444,7 +446,7 @@ function renderHost(){
   $("#msgWrap").hidden=!S.cfg.final;if(S.cfg.final)$("#msg").textContent=groupMsg();
 }
 function groupMsg(){
-  const lines=[`🦃 FRIENDSGIVING IS ON 🍂`,`Sunday, Nov 22, ${TIME_LABEL}${S.cfg.dinner?` (dinner at ${S.cfg.dinner})`:""}`];
+  const lines=[`🦃 FRIENDSGIVING IS ON 🍂`,`Sunday, Nov 22, ${TIME_LABEL}${S.cfg.dinner?` (dinner at ${S.cfg.dinner})`:""}`,`${COME_GO} ❤️`];
   if(S.cfg.address)lines.push(`📍 ${S.cfg.address}`);
   if(S.cfg.note)lines.push("",S.cfg.note);
   const owners=claims();const att=attending();
