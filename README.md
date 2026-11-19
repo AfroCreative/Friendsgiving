@@ -1,6 +1,6 @@
 # Friendsgiving 2026 🍂
 
-An invite and RSVP site for Friendsgiving on **Sunday, Nov 22, 4:00–9:00 PM**. Friends RSVP and claim an item from the menu (chicken, pizzas, drinks, mac & cheese, snacks). Each item can be claimed once, so nothing gets doubled up. When you're ready, you add the address and send the final invite.
+An invite and RSVP site for Friendsgiving on **Sunday, Nov 22, 4:00–9:00 PM**. Friends RSVP and pick as many things as they like to bring from the menu (chicken, pizzas, drinks, mac & cheese, snacks), plus anything extra. Several people can bring the same item, and the menu shows who's bringing what. When you're ready, you add the address and send the final invite.
 
 - `index.html`: the whole page (design, animations, form and host panel)
 - `api/state.js`: `GET`, returns the event details and every RSVP

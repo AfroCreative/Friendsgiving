@@ -1,5 +1,5 @@
 import {
-  CAT_IDS, ITEMS, LINA_ONLY, isLina, STATUSES, MAX_RSVPS, ID_RE, HttpError,
+  CAT_IDS, LINA_ONLY, isLina, STATUSES, MAX_RSVPS, ID_RE, HttpError,
   hashSecret, loadAll, publicState, putRsvp, readBody, route, send, str,
 } from "./_store.js";
 
@@ -32,19 +32,16 @@ export default route(async (req, res) => {
 
   const going = status !== "no";
   const times = []; // the time is fixed (4–9 PM), so there's nothing to vote on
-  const cat = going && CAT_IDS.includes(b.cat) ? b.cat : "";
-  if (going && !cat) throw new HttpError(400, "Choose what you'll bring.");
-  if (going && LINA_ONLY.has(cat) && !isLina(name)) throw new HttpError(403, "Habesha food is Lina-only. House rules.");
-  if (going && cat === "other" && !str(b.dish, 60)) throw new HttpError(400, "Tell us what you're bringing.");
-  if (going && cat !== "other") {
-    const holder = Object.entries(state.rsvps).find(([oid, r]) => oid !== id && r.cat === cat && r.status !== "no");
-    if (holder) throw new HttpError(409, `${ITEMS[cat]} was just claimed by ${holder[1].name}. Pick another item.`);
-  }
+  // Pick as many items as you like; anyone can bring the same thing as someone else.
+  const items = going && Array.isArray(b.items) ? [...new Set(b.items.map(String))].filter((i) => CAT_IDS.includes(i)) : [];
+  if (going && !items.length) throw new HttpError(400, "Choose at least one thing to bring.");
+  if (items.some((i) => LINA_ONLY.has(i)) && !isLina(name)) throw new HttpError(403, "Habesha food is Lina-only. House rules.");
+  if (items.includes("other") && !str(b.dish, 120)) throw new HttpError(400, "Tell us what else you're bringing.");
 
   const record = {
-    name, status, times, cat,
+    name, status, times, items,
     party: Math.min(5, Math.max(1, parseInt(b.party, 10) || 1)),
-    dish: going ? str(b.dish, 60) : "",
+    dish: going ? str(b.dish, 120) : "",
     diet: str(b.diet, 80),
     createdAt: existing?.createdAt || Date.now(),
     updatedAt: Date.now(),

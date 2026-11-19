@@ -4,7 +4,8 @@
 import crypto from "node:crypto";
 
 export const SLOT_IDS = ["12", "13", "14", "15", "16"];
-// The menu. Keep in sync with MENU in index.html. Each item can be claimed by one guest; "other" by anyone.
+// The menu. Keep in sync with MENU in index.html. Guests can pick any number of items, and any number
+// of guests can pick the same item. Stored as a comma-separated list in the "cat" column.
 export const ITEMS = {
   chicken: "Chicken",
   "pizza-chicken": "Chicken pizza", "pizza-beef": "Beef pizza", "pizza-cheese": "Cheese pizza",
@@ -75,7 +76,7 @@ function rowToRsvp(r) {
     status: r.status in STATUSES ? r.status : "yes",
     party: r.party || 1,
     times: (r.times || []).filter((t) => SLOT_IDS.includes(t)),
-    cat: CAT_IDS.includes(r.cat) ? r.cat : "",
+    items: String(r.cat || "").split(",").map((s) => s.trim()).filter((s) => CAT_IDS.includes(s)),
     dish: r.dish || "",
     diet: r.diet || "",
     createdAt: ms(r.created_at),
@@ -105,7 +106,7 @@ export async function putRsvp(id, r) {
     method: "POST",
     prefer: "resolution=merge-duplicates,return=minimal",
     body: {
-      id, name: r.name, status: r.status, party: r.party, times: r.times, cat: r.cat, dish: r.dish, diet: r.diet,
+      id, name: r.name, status: r.status, party: r.party, times: r.times, cat: (r.items || []).join(","), dish: r.dish, diet: r.diet,
       secret_hash: r.secretHash, created_at: isoOf(r.createdAt), updated_at: isoOf(r.updatedAt),
     },
   });

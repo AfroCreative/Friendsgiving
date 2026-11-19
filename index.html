@@ -92,9 +92,12 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .cat .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .cat strong{font-size:16px}
 .cat .hint{font-size:13px;color:var(--muted);line-height:1.35}
-.cat.taken .box{opacity:.5;cursor:not-allowed}
-.cat.taken input{cursor:not-allowed}
 .cat .hint.mine{color:var(--marigold)}
+.cat .count{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.cat input:checked + .box .count{color:var(--marigold)}
+.cat .tick{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--muted);display:grid;place-items:center;font-size:12px;line-height:1;color:var(--ink);flex:none}
+.cat input:checked + .box .tick{background:var(--marigold);border-color:var(--marigold)}
+.cat input:checked + .box .tick::after{content:"✓";font-weight:700}
 .menu-group{display:flex;flex-direction:column;gap:8px}
 .menu-group h3{margin:0;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .menu-picks{display:flex;flex-direction:column;gap:16px}
@@ -236,9 +239,9 @@ body{margin:0}
     </div>
 
     <div class="step"><span class="num">2</span><h2>What are you bringing?</h2></div>
-    <p class="sub">Pick one thing from the menu. Each item can only be claimed once, so grab yours before it's gone.</p>
+    <p class="sub">Pick as many things as you'd like to bring, from any part of the menu. Doubles are welcome. Nobody has ever complained about too much pizza.</p>
     <div class="menu-picks" id="catPicks"></div>
-    <div><label class="lbl" for="dish" id="dishLbl">Details (optional)</label><input id="dish" type="text" maxlength="60" placeholder="e.g. 2 large, a 12-pack"></div>
+    <div><label class="lbl" for="dish" id="dishLbl">Details (optional)</label><input id="dish" type="text" maxlength="120" placeholder="e.g. 2 large pizzas, a 12-pack of Coke"></div>
     <div><label class="lbl" for="diet">Allergies or dietary needs <span style="text-transform:none;letter-spacing:0">(optional)</span></label><input id="diet" type="text" maxlength="80" placeholder="e.g. vegetarian, no nuts"></div>
     <div class="actions">
       <button class="btn" id="saveBtn" type="submit">Save my RSVP</button>
@@ -302,7 +305,7 @@ body{margin:0}
 const START=new Date(2026,10,22,16,0,0), END=new Date(2026,10,22,21,0,0); // Sunday, Nov 22, 4:00–9:00 PM
 const TIME_LABEL="4:00 – 9:00 PM";
 const COME_GO="Come and go as you like: head home early or stay late. Either way works.";
-// The menu. Each item can be claimed by one guest; "other" can be picked by anyone.
+// The menu. Guests pick as many items as they like, and several guests can bring the same thing.
 const MENU=[
   {label:"Main",items:[{id:"chicken",label:"Chicken"}]},
   {label:"Pizza",items:[{id:"pizza-chicken",label:"Chicken pizza"},{id:"pizza-beef",label:"Beef pizza"},{id:"pizza-cheese",label:"Cheese pizza"}]},
@@ -349,48 +352,57 @@ async function api(path,data){
 
 /* ---------- pickers ---------- */
 function renderCatPicks(){
-  const cur=(document.querySelector('input[name=cat]:checked')||{}).value;const owners=claims();
-  const tile=it=>{const o=it.id==="other"?null:owners[it.id];const mine=o&&o.id===S.myId;const taken=o&&!mine;
-    const hint=it.id==="other"?"Not on the list? Tell us below.":mine?"Yours":taken?`${esc(o.name)} has it`:"Up for grabs";
-    return `<label class="cat ${taken?'taken':''}"><input type="radio" name="cat" value="${it.id}" id="c-${it.id}" ${cur===it.id&&!taken?'checked':''} ${taken?'disabled':''}><div class="box"><strong>${it.label}</strong><div class="hint ${mine?'mine':''}">${hint}</div></div></label>`;};
+  const cur=checkedItems();const by=bringers();
+  const who=(id)=>{const ps=(by[id]||[]).filter(p=>p.id!==S.myId);return ps.length?ps.slice(0,2).map(p=>esc(p.name)).join(", ")+(ps.length>2?` +${ps.length-2}`:"")+(ps.length===1?" is bringing":" are bringing"):"";};
+  const tile=it=>{const on=cur.has(it.id);const others=who(it.id);const n=(by[it.id]||[]).length;
+    const hint=it.id==="other"?"Not on the list? Tell us below.":others||(on?"You're on it":"Nobody yet");
+    return `<label class="cat"><input type="checkbox" name="item" value="${it.id}" id="c-${it.id}" ${on?'checked':''}><div class="box"><div class="top"><strong>${it.label}</strong><span class="tick" aria-hidden="true"></span></div><div class="hint">${hint}</div>${n&&it.id!=="other"?`<div class="count">×${n} so far</div>`:""}</div></label>`;};
   $("#catPicks").innerHTML=MENU.map(g=>`<div class="menu-group"><h3>${g.label}</h3><div class="cats">${g.items.map(tile).join("")}</div></div>`).join("")
     +`<div class="menu-group"><h3>Anything else</h3><div class="cats">${tile(OTHER)}</div></div>`
-    +habeshaSection(cur,owners);
+    +habeshaSection(cur,by);
   updateDishField();
 }
-function habeshaSection(cur,owners){
+function habeshaSection(cur,by){
   const lina=isLina($("#name").value);
+  const names=id=>(by[id]||[]).map(p=>esc(p.name)).join(", ");
   if(!lina) return `<div class="menu-group banned"><h3>Habesha food</h3>
        <p class="ruling">Yes, we know. Some of you thought this was a habesha food night. Others reminded us what happens to a white shirt within ten feet of berbere. <b>The ruling: no wat this year.</b> Sambusa was granted a pardon as our peace treaty. <b>One exception was made: Lina.</b></p>
-       <div class="cats">${BANNED.map(b=>{const o=owners[b.id];return `<div class="cat"><div class="box"><strong>${b.label}</strong><div class="hint">${o?`${esc(o.name)} got a special exception`:b.why}</div></div><span class="stamp">${o?"LINA'S":"BANNED"}</span></div>`}).join("")}</div></div>`;
+       <div class="cats">${BANNED.map(b=>{const n=names(b.id);return `<div class="cat"><div class="box"><strong>${b.label}</strong><div class="hint">${n?`${n} got a special exception`:b.why}</div></div><span class="stamp">${n?"LINA'S":"BANNED"}</span></div>`}).join("")}</div></div>`;
   return `<div class="menu-group banned unlocked"><h3>Habesha food · Lina's exception</h3>
-       <p class="ruling"><b>Lina, this one's for you.</b> You wanted habesha food, so you're the only person allowed to bring it. In return, you're personally responsible for every white shirt in the room. Napkins are on you. 🌶️</p>
-       <div class="cats">${BANNED.map(b=>{const o=owners[b.id];const mine=o&&o.id===S.myId;const taken=o&&!mine;
-         return `<label class="cat ${taken?'taken':''}"><input type="radio" name="cat" value="${b.id}" id="c-${b.id}" ${cur===b.id&&!taken?'checked':''} ${taken?'disabled':''}><div class="box"><strong>${b.label}</strong><div class="hint ${mine?'mine':''}">${mine?"Yours. Bring extra napkins.":taken?`${esc(o.name)} has it`:"Approved for Lina only"}</div></div><span class="stamp ok">${mine?"YOURS":"LINA ONLY"}</span></label>`}).join("")}</div></div>`;
+       <p class="ruling"><b>Lina, this one's for you.</b> You wanted habesha food, so you're the only person allowed to bring it. Bring as much as you want. In return, you're personally responsible for every white shirt in the room. Napkins are on you. 🌶️</p>
+       <div class="cats">${BANNED.map(b=>{const on=cur.has(b.id);
+         return `<label class="cat"><input type="checkbox" name="item" value="${b.id}" id="c-${b.id}" ${on?'checked':''}><div class="box"><strong>${b.label}</strong><div class="hint ${on?'mine':''}">${on?"Yours. Bring extra napkins.":"Approved for Lina only"}</div></div><span class="stamp ok">${on?"YOURS":"LINA ONLY"}</span></label>`}).join("")}</div></div>`;
 }
+// The items ticked right now (or, before the boxes exist, the ones restored from this guest's RSVP).
+function checkedItems(){const boxes=[...document.querySelectorAll('input[name=item]')];return boxes.length?new Set(boxes.filter(i=>i.checked).map(i=>i.value)):new Set(S.pendingItems||[]);}
 function updateDishField(){
-  const v=(document.querySelector('input[name=cat]:checked')||{}).value;const other=v==="other";
-  $("#dishLbl").textContent=other?"What are you bringing?":"Details (optional)";
-  $("#dish").placeholder=other?"e.g. a fruit tray, napkins and cups":"e.g. 2 large, a 12-pack";
+  const other=checkedItems().has("other");
+  $("#dishLbl").textContent=other?"What else are you bringing?":"Details (optional)";
+  $("#dish").placeholder=other?"e.g. a fruit tray, napkins and cups":"e.g. 2 large pizzas, a 12-pack of Coke";
 }
 /* ---------- derived data ---------- */
 const people=()=>[...S.rsvps.values()].sort((a,b)=>(a.createdAt||a.updatedAt||0)-(b.createdAt||b.updatedAt||0));
 const attending=()=>people().filter(p=>p.status==="yes"||p.status==="maybe");
-// Who has claimed each menu item (first come, first served).
-function claims(){const c={};attending().forEach(p=>{if(p.cat&&p.cat!=="other"&&!c[p.cat])c[p.cat]=p});return c;}
+// Everyone bringing each menu item, in RSVP order.
+function bringers(){const c={};attending().forEach(p=>(p.items||[]).forEach(i=>(c[i]=c[i]||[]).push(p)));return c;}
 const catById=id=>ITEMS.find(c=>c.id===id);
-const bringing=p=>{const it=catById(p.cat);if(!it)return "";return it.id==="other"?(p.dish||"something"):it.label+(p.dish?` (${p.dish})`:"");};
+const bringing=p=>{const its=(p.items||[]).map(catById).filter(Boolean);const named=its.filter(i=>i.id!=="other").map(i=>i.label);
+  const hasOther=its.some(i=>i.id==="other");const list=named.join(", ");
+  if(hasOther)return [list,p.dish||"something extra"].filter(Boolean).join(" + ");
+  return list+(p.dish?` (${p.dish})`:"");};
 
 /* ---------- render ---------- */
 function renderAll(){renderBoard();renderGuests();renderCatPicks();restoreCatPick();renderFinal();if(S.hostPw)renderHost();}
-function restoreCatPick(){if(S.pendingCat){const c=document.querySelector(`input[name=cat][value="${S.pendingCat}"]`);if(c&&!c.disabled)c.checked=true;}updateDishField();}
+function restoreCatPick(){updateDishField();}
 
 function renderBoard(){
-  const owners=claims();const extras=attending().filter(p=>p.cat==="other");
-  const item=it=>{const o=owners[it.id];const nt=it.note?` <small style="color:var(--muted)"><i>${it.note}</i></small>`:"";return o?`<li><span class="it">${it.label}</span>${nt} · <b>${esc(o.name)}</b>${o.dish?` <small style="color:var(--muted)">(${esc(o.dish)})</small>`:""}</li>`:`<li class="open"><span class="it">${it.label}</span>${nt} · up for grabs</li>`;};
-  $("#board").innerHTML=MENU.map(g=>{const n=g.items.filter(it=>owners[it.id]).length;
+  const by=bringers();const extras=attending().filter(p=>(p.items||[]).includes("other"));
+  const names=id=>(by[id]||[]).map(p=>`<b>${esc(p.name)}</b>`).join(", ");
+  const item=it=>{const nt=it.note?` <small style="color:var(--muted)"><i>${it.note}</i></small>`:"";const n=names(it.id);
+    return n?`<li><span class="it">${it.label}</span>${nt} · ${n}</li>`:`<li class="open"><span class="it">${it.label}</span>${nt} · nobody yet</li>`;};
+  $("#board").innerHTML=MENU.map(g=>{const n=g.items.filter(it=>by[it.id]).length;
     return `<div class="slot"><header><h3>${g.label}</h3><span class="full" style="color:${n>=g.items.length?'var(--sage)':'var(--muted)'}">${n}/${g.items.length}</span></header><ul>${g.items.map(item).join("")}</ul></div>`}).join("")
-    +`<div class="slot banned-slot"><header><h3>Habesha food</h3><span class="full" style="color:var(--cranberry)">banned*</span></header><ul>${BANNED.map(b=>{const o=owners[b.id];return o?`<li><span class="it">${b.label}</span> · <b>${esc(o.name)}</b> <small><i>(special exception)</i></small></li>`:`<li><s>${b.label}</s></li>`}).join("")}<li><i>*Except for Lina. Protecting white shirts since Nov 22.</i></li></ul></div>`
+    +`<div class="slot banned-slot"><header><h3>Habesha food</h3><span class="full" style="color:var(--cranberry)">banned*</span></header><ul>${BANNED.map(b=>{const n=names(b.id);return n?`<li><span class="it">${b.label}</span> · ${n} <small><i>(special exception)</i></small></li>`:`<li><s>${b.label}</s></li>`}).join("")}<li><i>*Except for Lina. Protecting white shirts since Nov 22.</i></li></ul></div>`
     +(extras.length?`<div class="slot"><header><h3>Extras</h3><span class="full">${extras.length}</span></header><ul>${extras.map(p=>`<li><b>${esc(p.name)}</b> · ${esc(p.dish||"something good")}</li>`).join("")}</ul></div>`:"");
 }
 function renderGuests(){
@@ -407,8 +419,8 @@ const icsUtc=d=>d.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"");
 function renderFinal(){
   const box=$("#finalSlot");const f=!!S.cfg.final;
   if(!f){box.hidden=true;box.innerHTML="";box.dataset.sig="";return;}
-  const mine=S.rsvps.get(S.myId);const cat=mine&&catById(mine.cat);
-  const sig=JSON.stringify([S.cfg,mine&&mine.dish,mine&&mine.status,mine&&mine.cat]);
+  const mine=S.rsvps.get(S.myId);const brings=mine?bringing(mine):"";
+  const sig=JSON.stringify([S.cfg,mine&&mine.dish,mine&&mine.status,mine&&mine.items]);
   if(box.dataset.sig===sig)return;box.dataset.sig=sig;
   const start=START,end=END;
   let tz="";try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||""}catch(e){}
@@ -423,7 +435,7 @@ function renderFinal(){
     <div class="perf" aria-hidden="true"></div>
     ${S.cfg.address?`<div class="where"><strong>Where</strong><br>${esc(S.cfg.address)}</div>`:""}
     ${S.cfg.note?`<div class="note where">${esc(S.cfg.note)}</div>`:""}
-    ${mine&&mine.status!=="no"&&cat?`<div class="yours">You're bringing <strong>${esc(bringing(mine))}</strong></div>`:""}
+    ${mine&&mine.status!=="no"&&brings?`<div class="yours">You're bringing <strong>${esc(brings)}</strong></div>`:""}
     ${mine&&mine.status==="no"?`<div class="yours">You said you can't make it. Changed your mind? Update your RSVP below.</div>`:""}
     ${!mine?`<div class="yours">Haven't RSVP'd yet? Fill in the form below.</div>`:""}
     <div class="actions" style="justify-content:center">
@@ -449,11 +461,11 @@ function groupMsg(){
   const lines=[`🦃 FRIENDSGIVING IS ON 🍂`,`Sunday, Nov 22, ${TIME_LABEL}${S.cfg.dinner?` (dinner at ${S.cfg.dinner})`:""}`,`${COME_GO} ❤️`];
   if(S.cfg.address)lines.push(`📍 ${S.cfg.address}`);
   if(S.cfg.note)lines.push("",S.cfg.note);
-  const owners=claims();const att=attending();
+  const by=bringers();const att=attending();
   lines.push("","🍽️ The menu:");
-  MENU.forEach(g=>g.items.forEach(it=>{const o=owners[it.id];lines.push(`• ${it.label}: ${o?o.name:"still needed!"}`)}));
-  att.filter(p=>p.cat==="other").forEach(p=>lines.push(`• ${p.dish||"Extra"}: ${p.name}`));
-  const linas=BANNED.filter(b=>owners[b.id]).map(b=>b.label);
+  MENU.forEach(g=>g.items.forEach(it=>{const ps=by[it.id]||[];lines.push(`• ${it.label}: ${ps.length?ps.map(p=>p.name).join(", "):"still needed!"}`)}));
+  att.filter(p=>(p.items||[]).includes("other")).forEach(p=>lines.push(`• ${p.dish||"Extra"}: ${p.name}`));
+  const linas=BANNED.filter(b=>by[b.id]).map(b=>b.label);
   lines.push("","🚫 Habesha food: banned to protect your white shirts. Sambusa got a pardon. Lina got an exception.");
   if(linas.length)lines.push(`🌶️ Lina's exception: ${linas.join(", ")}. Wear dark colors.`);
   lines.push("",`Full invite + RSVP: ${location.origin}`);
@@ -497,25 +509,25 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 
 /* ---------- form ---------- */
 $("#rsvp").addEventListener("input",e=>{S.dirty=true;if(e.target.id==="name"){const l=isLina(e.target.value);if(l!==S.wasLina){S.wasLina=l;renderCatPicks();restoreCatPick();}}});
-$("#rsvp").addEventListener("change",e=>{S.dirty=true;if(e.target.name==="cat"){S.pendingCat=e.target.value;updateDishField();}});
+$("#rsvp").addEventListener("change",e=>{S.dirty=true;if(e.target.name==="item"){const id=e.target.id;S.pendingItems=[...checkedItems()];renderCatPicks();document.getElementById(id)?.focus({preventScroll:true});}});
 function prefill(d){
   $("#name").value=d.name||"";$("#party").value=String(d.party||1);
   const st=document.querySelector(`input[name=status][value="${d.status}"]`);if(st)st.checked=true;
-  S.wasLina=isLina(d.name);S.pendingCat=d.cat||"";$("#dish").value=d.dish||"";$("#diet").value=d.diet||"";$("#saveBtn").textContent="Update my RSVP";
+  S.wasLina=isLina(d.name);S.pendingItems=d.items||[];document.querySelectorAll('input[name=item]').forEach(i=>i.checked=S.pendingItems.includes(i.value));$("#dish").value=d.dish||"";$("#diet").value=d.diet||"";$("#saveBtn").textContent="Update my RSVP";
 }
 $("#rsvp").addEventListener("submit",async e=>{
   e.preventDefault();
   const name=$("#name").value.trim();const status=(document.querySelector("input[name=status]:checked")||{}).value;
-  const cat=(document.querySelector("input[name=cat]:checked")||{}).value||"";const dish=$("#dish").value.trim();
+  const items=[...checkedItems()];const dish=$("#dish").value.trim();
   const note=$("#saveNote");
   if(!name){note.textContent="Add your name so we know who's coming.";$("#name").focus();return}
   if(!status){note.textContent="Pick Count me in, Maybe, or Can't make it.";return}
-  if(status!=="no"&&!cat){note.textContent="Choose what you'll bring.";return}
-  if(status!=="no"&&BANNED.some(b=>b.id===cat)&&!isLina(name)){note.textContent="Habesha food is Lina-only. House rules.";return}
-  if(status!=="no"&&cat==="other"&&!dish){note.textContent="Tell us what you're bringing.";$("#dish").focus();return}
+  if(status!=="no"&&!items.length){note.textContent="Choose at least one thing to bring.";return}
+  if(status!=="no"&&BANNED.some(b=>items.includes(b.id))&&!isLina(name)){note.textContent="Habesha food is Lina-only. House rules.";return}
+  if(status!=="no"&&items.includes("other")&&!dish){note.textContent="Tell us what else you're bringing.";$("#dish").focus();return}
   note.textContent="";const btn=$("#saveBtn");btn.disabled=true;btn.textContent="Saving…";
   try{
-    await write("/api/rsvp",{id:S.myId,secret:S.secret,name,status,party:+$("#party").value||1,cat,dish,diet:$("#diet").value.trim()});
+    await write("/api/rsvp",{id:S.myId,secret:S.secret,name,status,party:+$("#party").value||1,items,dish,diet:$("#diet").value.trim()});
     S.dirty=false;S.prefilled=true;$("#saveBtn").textContent="Update my RSVP";
     toast(status==="yes"?"You're on the list. See you Sunday!":status==="maybe"?"Saved as a maybe. Let us know soon!":"Got it. We'll miss you!");
     if(status!=="no"){const r=btn.getBoundingClientRect();burst(r.left+r.width/2,r.top);}
