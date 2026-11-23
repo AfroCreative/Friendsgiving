@@ -1,6 +1,6 @@
-# Friendsgiving 2026 🍂
+# Christmas 2026 🎄
 
-An invite and RSVP site for Friendsgiving on **Sunday, Nov 22, 4:00–9:00 PM**. Friends RSVP and pick as many things as they like to bring from the menu (chicken, pizzas, drinks, mac & cheese, snacks), plus anything extra. Several people can bring the same item, and the menu shows who's bringing what. When you're ready, you add the address and send the final invite.
+An invite and RSVP site for a Christmas get-together on **Saturday, Dec 26, 5:00–10:00 PM**. It's fasting season, so the whole menu is vegan. Friends RSVP and pick as many things as they like to bring (shiro, misir, injera, sambusa, drinks and more), plus anything extra. Several people can bring the same item, and the menu shows who's bringing what. When you're ready, you add the address and send the final invite.
 
 - `index.html`: the whole page (design, animations, form and host panel)
 - `api/state.js`: `GET`, returns the event details and every RSVP
@@ -39,7 +39,7 @@ To see the RSVPs in Supabase, open **Table Editor** and pick `fg_guest_list` (or
 
 You can also fix things directly in Supabase's Table Editor (`fg_rsvps`), like a typo in someone's dish. Don't change the `id` or `secret_hash` columns.
 
-To change the party time, edit `START`, `END` and `TIME_LABEL` near the top of the script in `index.html` (and the hero chip text `4–9 PM`). To change the menu, edit `MENU` in `index.html` **and** `ITEMS` in `api/_store.js` (use the same ids in both).
+To change the party time, edit `START`, `END` and `TIME_LABEL` near the top of the script in `index.html` (and the hero chip text `5–10 PM`, and `DATE_LABEL`). To change the menu, edit `MENU` in `index.html` **and** `ITEMS` in `api/_store.js` (use the same ids in both).
 
 ## Run locally
 
@@ -48,4 +48,13 @@ Without the Supabase variables, the API keeps data in memory, which is handy for
 ```bash
 npm i -g vercel
 HOST_PASSWORD=test vercel dev
+```
+
+## Starting over for a new event
+
+To clear the guest list (for example after switching from Friendsgiving to Christmas), run this in Supabase → SQL Editor:
+
+```sql
+truncate public.fg_rsvps;
+delete from public.fg_event;
 ```

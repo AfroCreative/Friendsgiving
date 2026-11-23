@@ -7,17 +7,13 @@ export const SLOT_IDS = ["12", "13", "14", "15", "16"];
 // The menu. Keep in sync with MENU in index.html. Guests can pick any number of items, and any number
 // of guests can pick the same item. Stored as a comma-separated list in the "cat" column.
 export const ITEMS = {
-  chicken: "Chicken",
-  "pizza-chicken": "Chicken pizza", "pizza-beef": "Beef pizza", "pizza-cheese": "Cheese pizza",
-  coke: "Coke", fanta: "Fanta", sprite: "Sprite", water: "Water",
-  mac: "Mac & cheese",
-  chips: "Chips", sambusa: "Sambusa", chocolate: "Chocolate",
+  // Fasting season: everything is vegan.
+  shiro: "Shiro", misir: "Misir wat", kik: "Kik alicha", atkilt: "Atkilt", gomen: "Gomen",
+  injera: "Injera", salad: "Timatim salad", rice: "Rice", pasta: "Pasta with tomato sauce",
+  sambusa: "Lentil sambusa", chips: "Chips", fruit: "Fruit platter", chocolate: "Dark chocolate", cookies: "Christmas cookies",
+  coke: "Coke", fanta: "Fanta", sprite: "Sprite", water: "Water", shai: "Shai",
   other: "Something else",
-  // Habesha food: Lina only.
-  "doro-wat": "Doro wat", shiro: "Shiro", injera: "Injera", kitfo: "Kitfo",
 };
-export const LINA_ONLY = new Set(["doro-wat", "shiro", "injera", "kitfo"]);
-export const isLina = (name) => /^lina\b/i.test(String(name || "").trim());
 export const CAT_IDS = Object.keys(ITEMS);
 export const STATUSES = { yes: "Coming", maybe: "Maybe", no: "Can't make it" };
 export const MAX_RSVPS = 200;

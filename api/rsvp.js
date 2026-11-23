@@ -1,5 +1,5 @@
 import {
-  CAT_IDS, LINA_ONLY, isLina, STATUSES, MAX_RSVPS, ID_RE, HttpError,
+  CAT_IDS, STATUSES, MAX_RSVPS, ID_RE, HttpError,
   hashSecret, loadAll, publicState, putRsvp, readBody, route, send, str,
 } from "./_store.js";
 
@@ -31,11 +31,10 @@ export default route(async (req, res) => {
   }
 
   const going = status !== "no";
-  const times = []; // the time is fixed (4–9 PM), so there's nothing to vote on
+  const times = []; // the time is fixed (Dec 26, 5–10 PM), so there's nothing to vote on
   // Pick as many items as you like; anyone can bring the same thing as someone else.
   const items = going && Array.isArray(b.items) ? [...new Set(b.items.map(String))].filter((i) => CAT_IDS.includes(i)) : [];
   if (going && !items.length) throw new HttpError(400, "Choose at least one thing to bring.");
-  if (items.some((i) => LINA_ONLY.has(i)) && !isLina(name)) throw new HttpError(403, "Habesha food is Lina-only. House rules.");
   if (items.includes("other") && !str(b.dish, 120)) throw new HttpError(400, "Tell us what else you're bringing.");
 
   const record = {

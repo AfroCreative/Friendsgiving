@@ -16,7 +16,7 @@ export default route(async (req, res) => {
 
   if (b.action === "save") {
     const event = {
-      time: "16", // fixed: Sunday 4:00–9:00 PM
+      time: "17", // fixed: Saturday, Dec 26, 5:00–10:00 PM
       dinner: str(b.dinner, 30),
       address: multiline(b.address, 200),
       note: multiline(b.note, 300),

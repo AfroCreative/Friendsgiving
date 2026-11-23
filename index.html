@@ -3,30 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Friendsgiving 2026</title>
-<meta name="description" content="Friendsgiving · Sunday, Nov 22. RSVP, vote on a start time, and claim a dish.">
-<meta property="og:title" content="You're invited to Friendsgiving 🍂">
-<meta property="og:description" content="Sunday, Nov 22 in the afternoon. RSVP, vote on a time, and claim a dish for the potluck.">
+<title>Christmas 2026</title>
+<meta name="description" content="Christmas · Saturday, Dec 26, 5–10 PM. RSVP and pick a vegan dish to bring.">
+<meta property="og:title" content="You're invited to Christmas 🎄">
+<meta property="og:description" content="Saturday, Dec 26, 5–10 PM. All vegan for the fasting season. RSVP and pick what you'll bring.">
 <meta property="og:type" content="website">
-<meta name="theme-color" content="#1f1519">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍂</text></svg>">
+<meta name="theme-color" content="#0f1d17">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎄</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one candlelit column of "place cards" over a slow fall of leaves; the invite sits on top once the host sends it. */
+/* Layout: one candlelit column of "place cards" over slow snowfall; the invite sits on top once the host sends it. */
 :root{
-  --night:#1f1519;      /* the table at dusk */
-  --card:#2b1e22;       /* place card */
-  --card-2:#352529;
-  --line:#4d363b;
-  --cream:#f7e9d5;      /* text */
-  --muted:#c8ad9d;
-  --marigold:#f3ab3c;   /* accent */
-  --pumpkin:#e2692c;
-  --cranberry:#c9364f;
-  --sage:#93ab7d;
-  --ink:#1f1519;
+  --night:#0f1d17;      /* pine forest at night */
+  --card:#16281f;       /* place card */
+  --card-2:#1d3328;
+  --line:#2f4a3c;
+  --cream:#f5efe3;      /* snow / text */
+  --muted:#a9bfb0;
+  --marigold:#e9b949;   /* candle gold: accent */
+  --pumpkin:#a8741a;    /* deep gold: button shadow */
+  --cranberry:#d0394a;  /* holly berry */
+  --sage:#8cc084;
+  --ink:#0f1d17;
+  --sel:#22362a;        /* selected tile */
+  --glow:233,185,73;
   --f-display:"Shrikhand","Georgia",serif;
   --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"DM Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
@@ -35,8 +37,8 @@
 *{box-sizing:border-box}
 html,body{background:var(--night)}
 body{color:var(--cream);font-family:var(--f-body);font-size:16px;line-height:1.55;
-  background:radial-gradient(120% 60% at 50% 0%,#3a2026 0%,var(--night) 60%) fixed,var(--night);min-height:100%}
-#leaves{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+  background:radial-gradient(120% 60% at 50% 0%,#1f3b2d 0%,var(--night) 60%) fixed,var(--night);min-height:100%}
+#snow{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
 .wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-block:40px 80px;display:flex;flex-direction:column;gap:28px}
@@ -49,13 +51,25 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(36px,11vw,88px);
 h1 span{display:inline-block;animation:drop .9s cubic-bezier(.2,.9,.3,1.3) backwards}
 @keyframes drop{from{transform:translateY(-60px) rotate(-14deg);opacity:0}}
 .datechip{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
-.chip{font-family:var(--f-mono);font-size:14px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(43,30,34,.7)}
+.chip{font-family:var(--f-mono);font-size:14px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(22,40,31,.75)}
 .chip b{color:var(--marigold);font-weight:500}
 .lede{max-width:52ch;color:var(--muted);margin:0;text-wrap:balance}
 .countdown{display:flex;gap:10px;justify-content:center;font-variant-numeric:tabular-nums}
 .countdown div{display:flex;flex-direction:column;align-items:center;min-width:64px;padding:10px 6px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
 .countdown strong{font-family:var(--f-mono);font-size:26px;font-weight:500;color:var(--cream);line-height:1.1}
 .countdown span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+/* string of fairy lights over the title */
+.lights{display:flex;justify-content:center;gap:clamp(10px,3.2vw,22px);margin-bottom:2px;position:relative;padding-top:6px}
+.lights::before{content:"";position:absolute;left:4%;right:4%;top:4px;height:14px;border-top:2px solid var(--line);border-radius:50%}
+.lights i{width:10px;height:14px;border-radius:50% 50% 45% 45%;position:relative;top:8px;animation:twinkle 2.4s ease-in-out infinite}
+.lights i:nth-child(4n+1){background:var(--cranberry);box-shadow:0 0 12px var(--cranberry)}
+.lights i:nth-child(4n+2){background:var(--marigold);box-shadow:0 0 12px var(--marigold);animation-delay:.6s}
+.lights i:nth-child(4n+3){background:var(--sage);box-shadow:0 0 12px var(--sage);animation-delay:1.2s}
+.lights i:nth-child(4n){background:var(--cream);box-shadow:0 0 12px var(--cream);animation-delay:1.8s}
+@keyframes twinkle{50%{opacity:.35;box-shadow:none}}
+.vegan{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:var(--sel);border:1px solid var(--sage);font-size:14px;line-height:1.45}
+.vegan b{color:var(--sage)}
 
 /* cards */
 .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px;display:flex;flex-direction:column;gap:18px;
@@ -88,7 +102,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .cat input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
 .cat .box{display:flex;flex-direction:column;gap:6px;padding:14px;border-radius:16px;border:1px solid var(--line);background:var(--night);cursor:pointer;height:100%;transition:border-color .2s,background .2s}
 .cat:hover .box{border-color:var(--muted)}
-.cat input:checked + .box{border-color:var(--marigold);background:#3a2621;box-shadow:inset 0 0 0 1px var(--marigold)}
+.cat input:checked + .box{border-color:var(--marigold);background:var(--sel);box-shadow:inset 0 0 0 1px var(--marigold)}
 .cat .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .cat strong{font-size:16px}
 .cat .hint{font-size:13px;color:var(--muted);line-height:1.35}
@@ -103,24 +117,6 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .menu-picks{display:flex;flex-direction:column;gap:16px}
 .cats{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
 .slot li.open{color:var(--muted)}
-/* the habesha food ban */
-.banned .cat .box{cursor:default;border-style:dashed;padding-top:40px}
-.banned .cat strong{text-decoration:line-through;text-decoration-color:var(--cranberry);text-decoration-thickness:2px}
-.banned .cat .hint{font-style:italic}
-.stamp{position:absolute;top:8px;right:8px;transform:rotate(-12deg);border:2px solid var(--cranberry);color:var(--cranberry);font-family:var(--f-mono);font-size:11px;font-weight:500;letter-spacing:.14em;padding:2px 6px;border-radius:4px;pointer-events:none;
-  animation:stamp .5s cubic-bezier(.2,1.6,.4,1) backwards}
-.banned .cat:nth-child(2) .stamp{animation-delay:.12s;transform:rotate(8deg)}
-.banned .cat:nth-child(3) .stamp{animation-delay:.24s;transform:rotate(-6deg)}
-.banned .cat:nth-child(4) .stamp{animation-delay:.36s;transform:rotate(10deg)}
-@keyframes stamp{from{opacity:0;scale:2.2}}
-.banned.unlocked .cat strong{text-decoration:none}
-.banned.unlocked .cat .box{cursor:pointer;border-style:solid}
-.banned.unlocked .cat input:checked + .box{border-color:var(--sage);background:#26302a;box-shadow:inset 0 0 0 1px var(--sage)}
-.stamp.ok{border-color:var(--sage);color:var(--sage)}
-.ruling{margin:0;font-size:14px;color:var(--muted);line-height:1.5}
-.ruling b{color:var(--cream)}
-.slot.banned-slot li{color:var(--muted)}
-.slot.banned-slot s{text-decoration-color:var(--cranberry);text-decoration-thickness:2px;color:var(--cream)}
 .slot li .it{color:var(--cream);font-weight:600}
 .plates{display:flex;gap:4px}
 .plates i{width:12px;height:12px;border-radius:50%;border:1.5px solid var(--muted);display:block}
@@ -133,7 +129,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--pumpkin)}
 .btn:disabled{opacity:.6;cursor:wait}
 .btn.ghost{background:transparent;color:var(--cream);border:1px solid var(--line);box-shadow:none}
-.btn.red{background:var(--cranberry);color:var(--cream);box-shadow:0 4px 0 #7f1f30}
+.btn.red{background:var(--cranberry);color:var(--cream);box-shadow:0 4px 0 #8a1f2c}
 .actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 .note{font-size:14px;color:var(--muted)}
 
@@ -159,16 +155,16 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 
 /* final invite */
 .invite{position:relative;overflow:hidden;border-radius:26px;padding:34px 26px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;
-  background:linear-gradient(160deg,#4a2119 0%,#3a1a22 55%,#2b1e22 100%);border:1px solid var(--marigold);
-  box-shadow:0 30px 60px -30px rgba(243,171,60,.45);animation:rise .9s cubic-bezier(.2,.9,.3,1.1) backwards}
+  background:linear-gradient(160deg,#5a1720 0%,#2a1d1f 50%,#16281f 100%);border:1px solid var(--marigold);
+  box-shadow:0 30px 60px -30px rgba(var(--glow),.45);animation:rise .9s cubic-bezier(.2,.9,.3,1.1) backwards}
 @keyframes rise{from{transform:translateY(24px) scale(.97);opacity:.2}}
 .invite::before,.invite::after{content:"";position:absolute;width:26px;height:26px;border-radius:50%;background:var(--night);top:50%;transform:translateY(-50%)}
 .invite::before{left:-14px}.invite::after{right:-14px}
 .invite h2{font-family:var(--f-display);font-weight:400;font-size:clamp(34px,8vw,52px);margin:0;line-height:1.05;color:var(--cream)}
 .invite .when{font-family:var(--f-mono);font-size:clamp(18px,4.5vw,24px);color:var(--marigold)}
 .invite .where{white-space:pre-line;max-width:44ch}
-.invite .yours{background:rgba(31,21,25,.55);border:1px dashed var(--marigold);border-radius:14px;padding:12px 16px;max-width:44ch}
-.invite .perf{width:100%;border-top:2px dashed rgba(247,233,213,.25);margin-block:4px}
+.invite .yours{background:rgba(15,29,23,.55);border:1px dashed var(--marigold);border-radius:14px;padding:12px 16px;max-width:44ch}
+.invite .perf{width:100%;border-top:2px dashed rgba(245,239,227,.25);margin-block:4px}
 .invite a.btn{text-decoration:none}
 
 /* host */
@@ -178,7 +174,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 @media (max-width:520px){.grid2{grid-template-columns:1fr}}
 pre.msg{white-space:pre-wrap;font-family:var(--f-mono);font-size:13px;background:var(--night);border:1px solid var(--line);border-radius:12px;padding:14px;margin:0;max-height:260px;overflow:auto;user-select:all}
 
-.banner{border-radius:14px;padding:12px 16px;background:#3a2621;border:1px solid var(--pumpkin);font-size:14px}
+.banner{border-radius:14px;padding:12px 16px;background:var(--sel);border:1px solid var(--pumpkin);font-size:14px}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;z-index:20;
   background:var(--cream);color:var(--ink);padding:12px 20px;border-radius:999px;font-weight:600;transition:all .3s;pointer-events:none;max-width:calc(100% - 32px);text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -202,20 +198,21 @@ body{margin:0}
 </style>
 </head>
 <body>
-<canvas id="leaves" aria-hidden="true"></canvas>
+<canvas id="snow" aria-hidden="true"></canvas>
 
 <main class="wrap">
   <section id="finalSlot" hidden></section>
 
   <header class="hero">
     <div class="eyebrow">You're invited to</div>
-    <h1 id="title" aria-label="Friendsgiving">Friendsgiving</h1>
+    <div class="lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <h1 id="title" aria-label="Christmas">Christmas</h1>
     <div class="datechip">
-      <span class="chip"><b>SUN</b> Nov 22, 2026</span>
-      <span class="chip" id="timeChip"><b>4–9 PM</b></span>
+      <span class="chip"><b>SAT</b> Dec 26, 2026</span>
+      <span class="chip" id="timeChip"><b>5–10 PM</b></span>
     </div>
-    <p class="lede">Good food, better people. Drop by anytime from 4 to 9: head home early or stay late, either way works. Tell us you're coming and claim a dish so we don't end up with six bowls of mashed potatoes.</p>
-    <div class="countdown" aria-label="Countdown to Friendsgiving">
+    <p class="lede">Warm food, good company and a little Christmas cheer. It's fasting season, so everything on the table is vegan. Drop by anytime from 5 to 10: head home early or stay late, either way works. Tell us you're coming and pick what you'll bring.</p>
+    <div class="countdown" aria-label="Countdown to Christmas">
       <div><strong id="cd-d">–</strong><span>days</span></div>
       <div><strong id="cd-h">–</strong><span>hrs</span></div>
       <div><strong id="cd-m">–</strong><span>min</span></div>
@@ -239,9 +236,10 @@ body{margin:0}
     </div>
 
     <div class="step"><span class="num">2</span><h2>What are you bringing?</h2></div>
-    <p class="sub">Pick as many things as you'd like to bring, from any part of the menu. Doubles are welcome. Nobody has ever complained about too much pizza.</p>
+    <div class="vegan"><span aria-hidden="true">🌱</span><span><b>Everything is vegan. It's fasting season.</b> No meat, fish, dairy, eggs or butter. Double-check labels on chocolate, cookies and bread.</span></div>
+    <p class="sub">Pick as many things as you'd like to bring, from any part of the menu. Doubles are welcome.</p>
     <div class="menu-picks" id="catPicks"></div>
-    <div><label class="lbl" for="dish" id="dishLbl">Details (optional)</label><input id="dish" type="text" maxlength="120" placeholder="e.g. 2 large pizzas, a 12-pack of Coke"></div>
+    <div><label class="lbl" for="dish" id="dishLbl">Details (optional)</label><input id="dish" type="text" maxlength="120" placeholder="e.g. a big pot, a 12-pack of Coke"></div>
     <div><label class="lbl" for="diet">Allergies or dietary needs <span style="text-transform:none;letter-spacing:0">(optional)</span></label><input id="diet" type="text" maxlength="80" placeholder="e.g. vegetarian, no nuts"></div>
     <div class="actions">
       <button class="btn" id="saveBtn" type="submit">Save my RSVP</button>
@@ -280,8 +278,8 @@ body{margin:0}
   <section class="card host" id="hostCard" hidden>
     <span class="tag">Host only</span>
     <h2>Lock it in and send the invite</h2>
-    <p class="sub">Add the address and any details. When you send it, everyone who opens this page sees the final invitation (Sunday, 4:00–9:00 PM) at the top.</p>
-    <div><label class="lbl" for="hDinner">Dinner served at (optional)</label><input id="hDinner" type="text" maxlength="30" placeholder="e.g. 5:30 PM"></div>
+    <p class="sub">Add the address and any details. When you send it, everyone who opens this page sees the final invitation (Saturday, Dec 26, 5:00–10:00 PM) at the top.</p>
+    <div><label class="lbl" for="hDinner">Dinner served at (optional)</label><input id="hDinner" type="text" maxlength="30" placeholder="e.g. 7:00 PM"></div>
     <div><label class="lbl" for="hAddr">Address</label><textarea id="hAddr" maxlength="200" placeholder="Street, apartment, buzzer code"></textarea></div>
     <div><label class="lbl" for="hNote">A note for everyone (optional)</label><textarea id="hNote" maxlength="300" placeholder="Parking is on the street. Bring a container for leftovers!"></textarea></div>
     <div class="actions">
@@ -297,33 +295,24 @@ body{margin:0}
     <button class="linkbtn" type="button" id="logoutBtn" style="align-self:flex-start">Sign out of host mode</button>
   </section>
 
-  <footer>Sunday · November 22 · bring an appetite<br><button class="linkbtn" type="button" id="hostLink">I'm the host</button></footer>
+  <footer>Saturday · December 26 · Merry Christmas<br><button class="linkbtn" type="button" id="hostLink">I'm the host</button></footer>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const START=new Date(2026,10,22,16,0,0), END=new Date(2026,10,22,21,0,0); // Sunday, Nov 22, 4:00–9:00 PM
-const TIME_LABEL="4:00 – 9:00 PM";
+const START=new Date(2026,11,26,17,0,0), END=new Date(2026,11,26,22,0,0); // Saturday, Dec 26, 5:00–10:00 PM
+const TIME_LABEL="5:00 – 10:00 PM";
+const DATE_LABEL="Saturday, Dec 26";
 const COME_GO="Come and go as you like: head home early or stay late. Either way works.";
 // The menu. Guests pick as many items as they like, and several guests can bring the same thing.
 const MENU=[
-  {label:"Main",items:[{id:"chicken",label:"Chicken"}]},
-  {label:"Pizza",items:[{id:"pizza-chicken",label:"Chicken pizza"},{id:"pizza-beef",label:"Beef pizza"},{id:"pizza-cheese",label:"Cheese pizza"}]},
-  {label:"Drinks",items:[{id:"coke",label:"Coke"},{id:"fanta",label:"Fanta"},{id:"sprite",label:"Sprite"},{id:"water",label:"Water"}]},
-  {label:"Sides",items:[{id:"mac",label:"Mac & cheese"}]},
-  {label:"Snacks",items:[{id:"chips",label:"Chips"},{id:"sambusa",label:"Sambusa",note:"the one habesha loophole"},{id:"chocolate",label:"Chocolate"}]},
+  {label:"Main dishes",items:[{id:"shiro",label:"Shiro"},{id:"misir",label:"Misir wat",note:"red lentils"},{id:"kik",label:"Kik alicha",note:"yellow split peas"},{id:"atkilt",label:"Atkilt",note:"cabbage, potato & carrot"},{id:"gomen",label:"Gomen",note:"collard greens"}]},
+  {label:"Bread & sides",items:[{id:"injera",label:"Injera"},{id:"salad",label:"Timatim salad"},{id:"rice",label:"Rice"},{id:"pasta",label:"Pasta with tomato sauce"}]},
+  {label:"Snacks & sweets",items:[{id:"sambusa",label:"Lentil sambusa"},{id:"chips",label:"Chips"},{id:"fruit",label:"Fruit platter"},{id:"chocolate",label:"Dark chocolate",note:"dairy-free"},{id:"cookies",label:"Christmas cookies",note:"vegan"}]},
+  {label:"Drinks",items:[{id:"coke",label:"Coke"},{id:"fanta",label:"Fanta"},{id:"sprite",label:"Sprite"},{id:"water",label:"Water"},{id:"shai",label:"Shai",note:"spiced tea"}]},
 ];
 const OTHER={id:"other",label:"Something else"};
-// Banned for everyone except Lina, who thought this was a habesha food night.
-// (The server enforces this too.)
-const BANNED=[
-  {id:"doro-wat",label:"Doro wat",why:"Claimed by your dry cleaner"},
-  {id:"shiro",label:"Shiro",why:"Already on your white shirt"},
-  {id:"injera",label:"Injera",why:"Too much commitment for one afternoon"},
-  {id:"kitfo",label:"Kitfo",why:"Maybe next year. Maybe."},
-];
-const ITEMS=[...MENU.flatMap(g=>g.items),OTHER,...BANNED];
-const isLina=n=>/^lina\b/i.test(String(n||"").trim());
+const ITEMS=[...MENU.flatMap(g=>g.items),OTHER];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
@@ -355,30 +344,18 @@ function renderCatPicks(){
   const cur=checkedItems();const by=bringers();
   const who=(id)=>{const ps=(by[id]||[]).filter(p=>p.id!==S.myId);return ps.length?ps.slice(0,2).map(p=>esc(p.name)).join(", ")+(ps.length>2?` +${ps.length-2}`:"")+(ps.length===1?" is bringing":" are bringing"):"";};
   const tile=it=>{const on=cur.has(it.id);const others=who(it.id);const n=(by[it.id]||[]).length;
-    const hint=it.id==="other"?"Not on the list? Tell us below.":others||(on?"You're on it":"Nobody yet");
-    return `<label class="cat"><input type="checkbox" name="item" value="${it.id}" id="c-${it.id}" ${on?'checked':''}><div class="box"><div class="top"><strong>${it.label}</strong><span class="tick" aria-hidden="true"></span></div><div class="hint">${hint}</div>${n&&it.id!=="other"?`<div class="count">×${n} so far</div>`:""}</div></label>`;};
+    const hint=it.id==="other"?"Not on the list? Tell us below (vegan only).":others||(on?"You're on it":"Nobody yet");
+    return `<label class="cat"><input type="checkbox" name="item" value="${it.id}" id="c-${it.id}" ${on?'checked':''}><div class="box"><div class="top"><strong>${it.label}</strong><span class="tick" aria-hidden="true"></span></div>${it.note?`<div class="hint" style="font-style:italic">${it.note}</div>`:""}<div class="hint">${hint}</div>${n&&it.id!=="other"?`<div class="count">×${n} so far</div>`:""}</div></label>`;};
   $("#catPicks").innerHTML=MENU.map(g=>`<div class="menu-group"><h3>${g.label}</h3><div class="cats">${g.items.map(tile).join("")}</div></div>`).join("")
-    +`<div class="menu-group"><h3>Anything else</h3><div class="cats">${tile(OTHER)}</div></div>`
-    +habeshaSection(cur,by);
+    +`<div class="menu-group"><h3>Anything else</h3><div class="cats">${tile(OTHER)}</div></div>`;
   updateDishField();
-}
-function habeshaSection(cur,by){
-  const lina=isLina($("#name").value);
-  const names=id=>(by[id]||[]).map(p=>esc(p.name)).join(", ");
-  if(!lina) return `<div class="menu-group banned"><h3>Habesha food</h3>
-       <p class="ruling">Yes, we know. Some of you thought this was a habesha food night. Others reminded us what happens to a white shirt within ten feet of berbere. <b>The ruling: no wat this year.</b> Sambusa was granted a pardon as our peace treaty. <b>One exception was made: Lina.</b></p>
-       <div class="cats">${BANNED.map(b=>{const n=names(b.id);return `<div class="cat"><div class="box"><strong>${b.label}</strong><div class="hint">${n?`${n} got a special exception`:b.why}</div></div><span class="stamp">${n?"LINA'S":"BANNED"}</span></div>`}).join("")}</div></div>`;
-  return `<div class="menu-group banned unlocked"><h3>Habesha food · Lina's exception</h3>
-       <p class="ruling"><b>Lina, this one's for you.</b> You wanted habesha food, so you're the only person allowed to bring it. Bring as much as you want. In return, you're personally responsible for every white shirt in the room. Napkins are on you. 🌶️</p>
-       <div class="cats">${BANNED.map(b=>{const on=cur.has(b.id);
-         return `<label class="cat"><input type="checkbox" name="item" value="${b.id}" id="c-${b.id}" ${on?'checked':''}><div class="box"><strong>${b.label}</strong><div class="hint ${on?'mine':''}">${on?"Yours. Bring extra napkins.":"Approved for Lina only"}</div></div><span class="stamp ok">${on?"YOURS":"LINA ONLY"}</span></label>`}).join("")}</div></div>`;
 }
 // The items ticked right now (or, before the boxes exist, the ones restored from this guest's RSVP).
 function checkedItems(){const boxes=[...document.querySelectorAll('input[name=item]')];return boxes.length?new Set(boxes.filter(i=>i.checked).map(i=>i.value)):new Set(S.pendingItems||[]);}
 function updateDishField(){
   const other=checkedItems().has("other");
   $("#dishLbl").textContent=other?"What else are you bringing?":"Details (optional)";
-  $("#dish").placeholder=other?"e.g. a fruit tray, napkins and cups":"e.g. 2 large pizzas, a 12-pack of Coke";
+  $("#dish").placeholder=other?"e.g. vegan cake, napkins and cups":"e.g. a big pot, a 12-pack of Coke";
 }
 /* ---------- derived data ---------- */
 const people=()=>[...S.rsvps.values()].sort((a,b)=>(a.createdAt||a.updatedAt||0)-(b.createdAt||b.updatedAt||0));
@@ -402,7 +379,6 @@ function renderBoard(){
     return n?`<li><span class="it">${it.label}</span>${nt} · ${n}</li>`:`<li class="open"><span class="it">${it.label}</span>${nt} · nobody yet</li>`;};
   $("#board").innerHTML=MENU.map(g=>{const n=g.items.filter(it=>by[it.id]).length;
     return `<div class="slot"><header><h3>${g.label}</h3><span class="full" style="color:${n>=g.items.length?'var(--sage)':'var(--muted)'}">${n}/${g.items.length}</span></header><ul>${g.items.map(item).join("")}</ul></div>`}).join("")
-    +`<div class="slot banned-slot"><header><h3>Habesha food</h3><span class="full" style="color:var(--cranberry)">banned*</span></header><ul>${BANNED.map(b=>{const n=names(b.id);return n?`<li><span class="it">${b.label}</span> · ${n} <small><i>(special exception)</i></small></li>`:`<li><s>${b.label}</s></li>`}).join("")}<li><i>*Except for Lina. Protecting white shirts since Nov 22.</i></li></ul></div>`
     +(extras.length?`<div class="slot"><header><h3>Extras</h3><span class="full">${extras.length}</span></header><ul>${extras.map(p=>`<li><b>${esc(p.name)}</b> · ${esc(p.dish||"something good")}</li>`).join("")}</ul></div>`:"");
 }
 function renderGuests(){
@@ -424,13 +400,14 @@ function renderFinal(){
   if(box.dataset.sig===sig)return;box.dataset.sig=sig;
   const start=START,end=END;
   let tz="";try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||""}catch(e){}
-  const cal=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("Friendsgiving 🦃")}&dates=${icsDate(start)}/${icsDate(end)}${tz?`&ctz=${encodeURIComponent(tz)}`:""}&location=${encodeURIComponent(S.cfg.address||"")}&details=${encodeURIComponent((S.cfg.note||"")+"\n\n"+location.origin)}`;
+  const cal=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("Christmas 🎄")}&dates=${icsDate(start)}/${icsDate(end)}${tz?`&ctz=${encodeURIComponent(tz)}`:""}&location=${encodeURIComponent(S.cfg.address||"")}&details=${encodeURIComponent((S.cfg.note||"")+"\n\n"+location.origin)}`;
   box.hidden=false;
   box.innerHTML=`<div class="invite">
     <div class="eyebrow">It's official</div>
-    <h2>Friendsgiving</h2>
-    <div class="when">Sunday, Nov 22 · ${TIME_LABEL}</div>
+    <h2>Christmas</h2>
+    <div class="when">${DATE_LABEL} · ${TIME_LABEL}</div>
     <div class="note">${COME_GO}</div>
+    <div class="note">🌱 All vegan: it's fasting season.</div>
     ${S.cfg.dinner?`<div class="note">Dinner is served at ${esc(S.cfg.dinner)}</div>`:""}
     <div class="perf" aria-hidden="true"></div>
     ${S.cfg.address?`<div class="where"><strong>Where</strong><br>${esc(S.cfg.address)}</div>`:""}
@@ -445,9 +422,9 @@ function renderFinal(){
   </div>`;
   $("#icsBtn").onclick=()=>{
     const e=s=>String(s||"").replace(/[\\;,]/g,m=>"\\"+m).replace(/\n/g,"\\n");
-    const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Friendsgiving//EN","BEGIN:VEVENT",`UID:friendsgiving-2026-${S.cfg.updatedAt||0}@${location.host}`,`DTSTAMP:${icsUtc(new Date())}`,
-      `DTSTART:${icsUtc(start)}`,`DTEND:${icsUtc(end)}`,"SUMMARY:Friendsgiving 🦃",`LOCATION:${e(S.cfg.address)}`,`DESCRIPTION:${e((S.cfg.note||"")+"\n\n"+location.origin)}`,"END:VEVENT","END:VCALENDAR"].join("\r\n");
-    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));a.download="friendsgiving.ics";document.body.appendChild(a);a.click();a.remove();
+    const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Christmas Party//EN","BEGIN:VEVENT",`UID:christmas-2026-${S.cfg.updatedAt||0}@${location.host}`,`DTSTAMP:${icsUtc(new Date())}`,
+      `DTSTART:${icsUtc(start)}`,`DTEND:${icsUtc(end)}`,"SUMMARY:Christmas 🎄",`LOCATION:${e(S.cfg.address)}`,`DESCRIPTION:${e((S.cfg.note||"")+"\n\n"+location.origin)}`,"END:VEVENT","END:VCALENDAR"].join("\r\n");
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));a.download="christmas.ics";document.body.appendChild(a);a.click();a.remove();
   };
 }
 function renderHost(){
@@ -458,16 +435,14 @@ function renderHost(){
   $("#msgWrap").hidden=!S.cfg.final;if(S.cfg.final)$("#msg").textContent=groupMsg();
 }
 function groupMsg(){
-  const lines=[`🦃 FRIENDSGIVING IS ON 🍂`,`Sunday, Nov 22, ${TIME_LABEL}${S.cfg.dinner?` (dinner at ${S.cfg.dinner})`:""}`,`${COME_GO} ❤️`];
+  const lines=[`🎄 CHRISTMAS IS ON ✨`,`${DATE_LABEL}, ${TIME_LABEL}${S.cfg.dinner?` (dinner at ${S.cfg.dinner})`:""}`,`${COME_GO} ❤️`];
   if(S.cfg.address)lines.push(`📍 ${S.cfg.address}`);
   if(S.cfg.note)lines.push("",S.cfg.note);
   const by=bringers();const att=attending();
-  lines.push("","🍽️ The menu:");
+  lines.push("","🍽️ The menu (all vegan):");
   MENU.forEach(g=>g.items.forEach(it=>{const ps=by[it.id]||[];lines.push(`• ${it.label}: ${ps.length?ps.map(p=>p.name).join(", "):"still needed!"}`)}));
   att.filter(p=>(p.items||[]).includes("other")).forEach(p=>lines.push(`• ${p.dish||"Extra"}: ${p.name}`));
-  const linas=BANNED.filter(b=>by[b.id]).map(b=>b.label);
-  lines.push("","🚫 Habesha food: banned to protect your white shirts. Sambusa got a pardon. Lina got an exception.");
-  if(linas.length)lines.push(`🌶️ Lina's exception: ${linas.join(", ")}. Wear dark colors.`);
+  lines.push("","🌱 Reminder: everything is vegan. It's fasting season.");
   lines.push("",`Full invite + RSVP: ${location.origin}`);
   return lines.join("\n");
 }
@@ -508,12 +483,12 @@ setInterval(()=>{if(document.visibilityState==="visible")load()},10000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")load()});
 
 /* ---------- form ---------- */
-$("#rsvp").addEventListener("input",e=>{S.dirty=true;if(e.target.id==="name"){const l=isLina(e.target.value);if(l!==S.wasLina){S.wasLina=l;renderCatPicks();restoreCatPick();}}});
+$("#rsvp").addEventListener("input",()=>S.dirty=true);
 $("#rsvp").addEventListener("change",e=>{S.dirty=true;if(e.target.name==="item"){const id=e.target.id;S.pendingItems=[...checkedItems()];renderCatPicks();document.getElementById(id)?.focus({preventScroll:true});}});
 function prefill(d){
   $("#name").value=d.name||"";$("#party").value=String(d.party||1);
   const st=document.querySelector(`input[name=status][value="${d.status}"]`);if(st)st.checked=true;
-  S.wasLina=isLina(d.name);S.pendingItems=d.items||[];document.querySelectorAll('input[name=item]').forEach(i=>i.checked=S.pendingItems.includes(i.value));$("#dish").value=d.dish||"";$("#diet").value=d.diet||"";$("#saveBtn").textContent="Update my RSVP";
+  S.pendingItems=d.items||[];document.querySelectorAll('input[name=item]').forEach(i=>i.checked=S.pendingItems.includes(i.value));$("#dish").value=d.dish||"";$("#diet").value=d.diet||"";$("#saveBtn").textContent="Update my RSVP";
 }
 $("#rsvp").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -523,13 +498,12 @@ $("#rsvp").addEventListener("submit",async e=>{
   if(!name){note.textContent="Add your name so we know who's coming.";$("#name").focus();return}
   if(!status){note.textContent="Pick Count me in, Maybe, or Can't make it.";return}
   if(status!=="no"&&!items.length){note.textContent="Choose at least one thing to bring.";return}
-  if(status!=="no"&&BANNED.some(b=>items.includes(b.id))&&!isLina(name)){note.textContent="Habesha food is Lina-only. House rules.";return}
   if(status!=="no"&&items.includes("other")&&!dish){note.textContent="Tell us what else you're bringing.";$("#dish").focus();return}
   note.textContent="";const btn=$("#saveBtn");btn.disabled=true;btn.textContent="Saving…";
   try{
     await write("/api/rsvp",{id:S.myId,secret:S.secret,name,status,party:+$("#party").value||1,items,dish,diet:$("#diet").value.trim()});
     S.dirty=false;S.prefilled=true;$("#saveBtn").textContent="Update my RSVP";
-    toast(status==="yes"?"You're on the list. See you Sunday!":status==="maybe"?"Saved as a maybe. Let us know soon!":"Got it. We'll miss you!");
+    toast(status==="yes"?"You're on the list. See you on the 26th!":status==="maybe"?"Saved as a maybe. Let us know soon!":"Got it. We'll miss you!");
     if(status!=="no"){const r=btn.getBoundingClientRect();burst(r.left+r.width/2,r.top);}
   }catch(err){note.textContent=err.message;if(err.status===409){S.wroteAt=Date.now();load();}$("#saveBtn").textContent=S.rsvps.has(S.myId)?"Update my RSVP":"Save my RSVP";}
   finally{btn.disabled=false;}
@@ -564,30 +538,32 @@ $("#guests").addEventListener("click",async e=>{
   try{await write("/api/event",{password:S.hostPw,action:"deleteRsvp",id});toast("RSVP removed.");}catch(err){toast(err.message)}
 });
 
-/* ---------- falling leaves ---------- */
-const cv=$("#leaves"),ctx=cv.getContext("2d");let W=0,H=0,DPR=1;
+/* ---------- snowfall ---------- */
+const cv=$("#snow"),ctx=cv.getContext("2d");let W=0,H=0,DPR=1;
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
-const COLORS=["#f3ab3c","#e2692c","#c9364f","#b5542a","#d98b2b","#8f2f2a"];
-const MAPLE=[[0,-1],[.15,-.55],[.45,-.72],[.38,-.35],[.82,-.42],[.6,-.1],[.76,.05],[.35,.15],[.42,.38],[.08,.3],[0,.55],[-.08,.3],[-.42,.38],[-.35,.15],[-.76,.05],[-.6,-.1],[-.82,-.42],[-.38,-.35],[-.45,-.72],[-.15,-.55]];
+const CONFETTI=["#e9b949","#d0394a","#8cc084","#f5efe3"];
 function resize(){DPR=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);if(reduce)drawStatic();}
-const mk=(x,y,burst)=>({x:x??Math.random()*W,y:y??-20-Math.random()*H,s:7+Math.random()*11,c:COLORS[Math.random()*COLORS.length|0],
-  vy:burst?-(2+Math.random()*4):.35+Math.random()*.7,vx:burst?(Math.random()-.5)*6:0,r:Math.random()*6.28,vr:(Math.random()-.5)*.03,
-  ph:Math.random()*6.28,sw:.4+Math.random()*.9,fl:.01+Math.random()*.03,maple:Math.random()<.7,a:burst?1:.45+Math.random()*.4,burst:!!burst,life:burst?220:Infinity});
+// Snowflakes: most are soft dots, some are six-armed crystals. Bursts are gold stars and berry-red ornaments.
+const mk=(x,y,burst)=>burst?{x,y,s:4+Math.random()*5,c:CONFETTI[Math.random()*CONFETTI.length|0],vy:-(2+Math.random()*4),vx:(Math.random()-.5)*6,r:Math.random()*6.28,vr:(Math.random()-.5)*.2,star:Math.random()<.5,burst:true,life:200,a:1}
+  :{x:x??Math.random()*W,y:y??-10-Math.random()*H,s:1.2+Math.random()*2.6,crystal:Math.random()<.18,vy:.3+Math.random()*.8,ph:Math.random()*6.28,sw:.2+Math.random()*.6,r:Math.random()*6.28,vr:(Math.random()-.5)*.01,a:.35+Math.random()*.55,life:Infinity};
 let L=[];
-function drawLeaf(p,t){ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.scale(Math.cos(t*p.fl+p.ph),1);ctx.globalAlpha=p.a*(p.burst?Math.min(1,p.life/60):1);ctx.fillStyle=p.c;ctx.beginPath();
-  if(p.maple){MAPLE.forEach(([x,y],i)=>i?ctx.lineTo(x*p.s,y*p.s):ctx.moveTo(x*p.s,y*p.s));ctx.closePath();ctx.fill();ctx.strokeStyle=p.c;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(0,.3*p.s);ctx.lineTo(0,p.s*1.05);ctx.stroke();}
-  else{ctx.ellipse(0,0,p.s*.45,p.s,0,0,6.28);ctx.fill();ctx.strokeStyle="rgba(31,21,25,.35)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,-p.s);ctx.lineTo(0,p.s);ctx.stroke();}
+function star(r){ctx.beginPath();for(let i=0;i<10;i++){const a=i*Math.PI/5-Math.PI/2,d=i%2?r*.45:r;ctx.lineTo(Math.cos(a)*d,Math.sin(a)*d);}ctx.closePath();ctx.fill();}
+function drawFlake(p){ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.globalAlpha=p.a*(p.burst?Math.min(1,p.life/50):1);
+  if(p.burst){ctx.fillStyle=p.c;if(p.star)star(p.s);else{ctx.beginPath();ctx.arc(0,0,p.s*.7,0,6.28);ctx.fill();}}
+  else if(p.crystal){const r=p.s*3;ctx.strokeStyle="#f5efe3";ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3,cx=Math.cos(a),sy=Math.sin(a);ctx.moveTo(0,0);ctx.lineTo(cx*r,sy*r);
+      const bx=cx*r*.6,by=sy*r*.6,b1=a+.6,b2=a-.6;ctx.moveTo(bx,by);ctx.lineTo(bx+Math.cos(b1)*r*.3,by+Math.sin(b1)*r*.3);ctx.moveTo(bx,by);ctx.lineTo(bx+Math.cos(b2)*r*.3,by+Math.sin(b2)*r*.3);}ctx.stroke();}
+  else{ctx.fillStyle="#f5efe3";ctx.beginPath();ctx.arc(0,0,p.s,0,6.28);ctx.fill();}
   ctx.restore();}
-function drawStatic(){ctx.clearRect(0,0,W,H);L.forEach(p=>drawLeaf(p,0));}
+function drawStatic(){ctx.clearRect(0,0,W,H);L.forEach(drawFlake);}
 resize();addEventListener("resize",resize);
-L=Array.from({length:W<500?16:28},()=>mk(undefined,Math.random()*H));
+L=Array.from({length:W<500?55:110},()=>mk(undefined,Math.random()*H));
 let t=0;function frame(){t++;ctx.clearRect(0,0,W,H);
-  for(const p of L){if(p.burst){p.vy+=.08;p.vx*=.985;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr*4;p.life--;}
-    else{p.y+=p.vy;p.x+=Math.sin(t*.012+p.ph)*p.sw;p.r+=p.vr;if(p.y>H+30){Object.assign(p,mk(undefined,-30));}}
-    drawLeaf(p,t);}
+  for(const p of L){if(p.burst){p.vy+=.08;p.vx*=.985;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;p.life--;}
+    else{p.y+=p.vy;p.x+=Math.sin(t*.01+p.ph)*p.sw;p.r+=p.vr;if(p.y>H+10){Object.assign(p,mk(undefined,-10));}}
+    drawFlake(p);}
   L=L.filter(p=>p.life>0);requestAnimationFrame(frame);}
 if(reduce)drawStatic();else requestAnimationFrame(frame);
-function burst(x,y){if(reduce)return;for(let i=0;i<34;i++)L.push(mk(x+(Math.random()-.5)*40,y,true));}
+function burst(x,y){if(reduce)return;for(let i=0;i<40;i++)L.push(mk(x+(Math.random()-.5)*40,y,true));}
 </script>
 </body>
 </html>
