@@ -30,7 +30,7 @@ To see the RSVPs in Supabase, open **Table Editor** and pick `fg_guest_list` (or
 
 ## Using it
 
-- **Guests** just open the link. Their browser remembers their RSVP. After saving, they get a personal edit link they can use to update it from another device.
+- **Guests** just open the link. Each RSVP is for one person (no plus-ones), so anyone bringing someone shares the link and that person RSVPs for themselves. This keeps Secret Santa one gift per person. Their browser remembers their RSVP. After saving, they get a personal edit link they can use to update it from another device.
 - **You (the host):** click **I'm the host** at the bottom of the page (or open `/?host`) and enter `HOST_PASSWORD`. You can then:
   - add the dinner time, address and a note
   - press **Send the final invite**: everyone now sees the invitation card at the top of the page, with calendar buttons

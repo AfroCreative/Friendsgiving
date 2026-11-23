@@ -45,7 +45,7 @@ export default route(async (req, res) => {
     santa, wish,
     santaTo: santa ? existing?.santaTo || "" : "",
     name, status, times, items,
-    party: Math.min(5, Math.max(1, parseInt(b.party, 10) || 1)),
+    party: 1, // one RSVP per person (keeps Secret Santa one-to-one)
     dish: going ? str(b.dish, 120) : "",
     diet: str(b.diet, 80),
     createdAt: existing?.createdAt || Date.now(),

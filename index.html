@@ -96,8 +96,6 @@ label.lbl{display:block;font-size:13px;letter-spacing:.08em;text-transform:upper
 input[type=text],textarea,select{width:100%;font:inherit;color:var(--cream);background:var(--night);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 textarea{resize:vertical;min-height:70px}
 input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible,.pick:focus-within{outline:2px solid var(--marigold);outline-offset:2px}
-.row{display:grid;grid-template-columns:1fr 140px;gap:14px}
-@media (max-width:520px){.row{grid-template-columns:1fr}}
 
 .picks{display:flex;flex-wrap:wrap;gap:8px}
 .pick{position:relative}
@@ -242,11 +240,8 @@ body{margin:0}
 
   <form id="rsvp" class="card" novalidate>
     <div class="step"><span class="num">1</span><h2>Are you coming?</h2></div>
-    <div class="row">
-      <div><label class="lbl" for="name">Your name</label><input id="name" type="text" maxlength="40" autocomplete="given-name" placeholder="e.g. Maya"></div>
-      <div><label class="lbl" for="party">Total in your party</label>
-        <select id="party"><option value="1">Just me</option><option value="2">2 of us</option><option value="3">3 of us</option><option value="4">4 of us</option><option value="5">5 of us</option></select></div>
-    </div>
+    <div><label class="lbl" for="name">Your name</label><input id="name" type="text" maxlength="40" autocomplete="given-name" placeholder="e.g. Maya"></div>
+    <p class="note" style="margin:0">One RSVP per person. Bringing someone? Send them the link so they can RSVP and join Secret Santa themselves.</p>
     <div class="picks" role="radiogroup" aria-label="RSVP">
       <label class="pick"><input type="radio" name="status" value="yes" id="st-yes"><span>Count me in</span></label>
       <label class="pick st-maybe"><input type="radio" name="status" value="maybe" id="st-maybe"><span>Maybe</span></label>
@@ -416,9 +411,8 @@ function renderBoard(){
 }
 function renderGuests(){
   const all=people();const yes=all.filter(p=>p.status==="yes");const maybe=all.filter(p=>p.status==="maybe");
-  const heads=yes.reduce((a,p)=>a+(+p.party||1),0);
-  $("#stats").innerHTML=`<span><b>${yes.length}</b>coming</span><span><b>${heads}</b>plates to set</span><span><b>${maybe.length}</b>maybe</span><span><b>${S.cfg.santaCount||0}</b>in Secret Santa</span>`;
-  $("#guests").innerHTML=all.length?all.map(p=>`<span class="g ${esc(p.status)}"><span class="dot">${esc((p.name||"?").trim().charAt(0).toUpperCase())}</span>${esc(p.name)}${p.santa&&p.status!=="no"?' <span title="In Secret Santa" aria-label="in Secret Santa">🎁</span>':''}${(+p.party||1)>1?` <small style="color:var(--muted)">+${(+p.party)-1}</small>`:''}${p.diet&&S.hostPw?` <small style="color:var(--muted)">· ${esc(p.diet)}</small>`:''}${S.hostPw?`<button class="x" type="button" data-del="${esc(p.id)}" aria-label="Remove ${esc(p.name)}">×</button>`:''}</span>`).join("")
+  $("#stats").innerHTML=`<span><b>${yes.length}</b>coming</span><span><b>${maybe.length}</b>maybe</span><span><b>${S.cfg.santaCount||0}</b>in Secret Santa</span>`;
+  $("#guests").innerHTML=all.length?all.map(p=>`<span class="g ${esc(p.status)}"><span class="dot">${esc((p.name||"?").trim().charAt(0).toUpperCase())}</span>${esc(p.name)}${p.santa&&p.status!=="no"?' <span title="In Secret Santa" aria-label="in Secret Santa">🎁</span>':''}${p.diet&&S.hostPw?` <small style="color:var(--muted)">· ${esc(p.diet)}</small>`:''}${S.hostPw?`<button class="x" type="button" data-del="${esc(p.id)}" aria-label="Remove ${esc(p.name)}">×</button>`:''}</span>`).join("")
     :`<p class="sub">${S.loaded?"No RSVPs yet. Be the first name on the list.":"Loading the guest list…"}</p>`;
 }
 function eventStart(){return START;}
@@ -560,7 +554,7 @@ $("#santa").addEventListener("change",syncSantaFields);
 $("#rsvp").addEventListener("change",e=>{S.dirty=true;if(e.target.name==="item"){const id=e.target.id;S.pendingItems=[...checkedItems()];renderCatPicks();document.getElementById(id)?.focus({preventScroll:true});}});
 function prefill(d){
   $("#santa").checked=!!d.santa;syncSantaFields();
-  $("#name").value=d.name||"";$("#party").value=String(d.party||1);
+  $("#name").value=d.name||"";
   const st=document.querySelector(`input[name=status][value="${d.status}"]`);if(st)st.checked=true;
   S.pendingItems=d.items||[];document.querySelectorAll('input[name=item]').forEach(i=>i.checked=S.pendingItems.includes(i.value));$("#dish").value=d.dish||"";$("#diet").value=d.diet||"";$("#saveBtn").textContent="Update my RSVP";
 }
@@ -575,7 +569,7 @@ $("#rsvp").addEventListener("submit",async e=>{
   if(status!=="no"&&items.includes("other")&&!dish){note.textContent="Tell us what else you're bringing.";$("#dish").focus();return}
   note.textContent="";const btn=$("#saveBtn");btn.disabled=true;btn.textContent="Saving…";
   try{
-    await write("/api/rsvp",{id:S.myId,secret:S.secret,name,status,party:+$("#party").value||1,items,dish,diet:$("#diet").value.trim(),santa:status!=="no"&&$("#santa").checked,wish:$("#wish").value.trim()});
+    await write("/api/rsvp",{id:S.myId,secret:S.secret,name,status,items,dish,diet:$("#diet").value.trim(),santa:status!=="no"&&$("#santa").checked,wish:$("#wish").value.trim()});
     S.dirty=false;S.prefilled=true;$("#saveBtn").textContent="Update my RSVP";
     toast(status==="yes"?"You're on the list. See you on the 26th!":status==="maybe"?"Saved as a maybe. Let us know soon!":"Got it. We'll miss you!");
     if(status!=="no"){const r=btn.getBoundingClientRect();burst(r.left+r.width/2,r.top);}
