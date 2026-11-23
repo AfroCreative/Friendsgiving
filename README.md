@@ -5,7 +5,8 @@ An invite and RSVP site for a Christmas get-together on **Saturday, Dec 26, 5:00
 - `index.html`: the whole page (design, animations, form and host panel)
 - `api/state.js`: `GET`, returns the event details and every RSVP
 - `api/rsvp.js`: `POST`, saves a guest's own RSVP
-- `api/event.js`: `POST`, host-only actions (needs the host password)
+- `api/event.js`: `POST`, host-only actions (needs the host password), including the Secret Santa draw
+- `api/santa.js`: `POST`, a guest's own Secret Santa match (needs their browser's secret)
 - `api/_store.js`: shared helpers and the connection to Supabase
 - `supabase/setup.sql`: creates the database tables (run once)
 
@@ -50,11 +51,19 @@ npm i -g vercel
 HOST_PASSWORD=test vercel dev
 ```
 
+## Secret Santa (under $10)
+
+Guests tick **Count me in for Secret Santa** on their RSVP and can leave gift hints. When most people have RSVP'd, open the host panel and press **Draw names** (at least 3 people). Everyone in the circle buys for exactly one person, and nobody draws themselves.
+
+Each guest sees their own match at the top of the page behind a **Reveal my match** button. Matches and hints are only ever sent to that guest's own browser, so other guests can't see who drew whom, and neither can you. If someone joins or leaves after the draw, the host panel says so; press **Redraw names** (twice, to confirm) to give everyone a fresh match.
+
+If you set up the database before Secret Santa was added, run `supabase/setup.sql` again. It only adds the new columns.
+
 ## Starting over for a new event
 
 To clear the guest list (for example after switching from Friendsgiving to Christmas), run this in Supabase → SQL Editor:
 
 ```sql
 truncate public.fg_rsvps;
-delete from public.fg_event;
+delete from public.fg_event;  -- also resets the Secret Santa draw
 ```

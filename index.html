@@ -71,6 +71,19 @@ h1 span{display:inline-block;animation:drop .9s cubic-bezier(.2,.9,.3,1.3) backw
 .vegan{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:var(--sel);border:1px solid var(--sage);font-size:14px;line-height:1.45}
 .vegan b{color:var(--sage)}
 
+/* Secret Santa */
+.santa-box{display:flex;flex-direction:column;gap:12px}
+.budget{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:13px;padding:4px 10px;border-radius:999px;border:1px solid var(--cranberry);color:var(--cream);background:rgba(208,57,74,.15)}
+.card.santa-card{position:relative;overflow:hidden;border-color:var(--cranberry);background:linear-gradient(160deg,#3a1418 0%,var(--card) 70%)}
+.santa-card .gift{font-size:44px;line-height:1;animation:wiggle 2.6s ease-in-out infinite;transform-origin:50% 90%}
+@keyframes wiggle{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(-8deg)}90%{transform:rotate(7deg)}95%{transform:rotate(-4deg)}}
+.santa-card .who{font-family:var(--f-display);font-size:clamp(30px,8vw,44px);line-height:1.1;color:var(--marigold);animation:rise .6s cubic-bezier(.2,.9,.3,1.2) backwards;overflow-wrap:anywhere}
+.santa-card .hints{background:var(--night);border:1px dashed var(--line);border-radius:14px;padding:12px 14px;font-size:15px}
+.santa-card .row2{display:flex;gap:16px;align-items:center}
+.santa-host{display:flex;flex-direction:column;gap:10px;padding-top:6px;border-top:1px dashed var(--line)}
+.santa-host h3{margin:0;font-size:18px}
+.warn{color:var(--marigold);font-size:14px}
+
 /* cards */
 .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px;display:flex;flex-direction:column;gap:18px;
   box-shadow:0 20px 40px -24px rgba(0,0,0,.6)}
@@ -222,6 +235,11 @@ body{margin:0}
 
   <div id="banner" class="banner" hidden></div>
 
+  <section class="card santa-card" id="santaCard" hidden>
+    <div class="row2"><span class="gift" aria-hidden="true">🎁</span><div><h2>Your Secret Santa</h2><span class="budget">Under $10 · bring it wrapped</span></div></div>
+    <div id="santaBody"></div>
+  </section>
+
   <form id="rsvp" class="card" novalidate>
     <div class="step"><span class="num">1</span><h2>Are you coming?</h2></div>
     <div class="row">
@@ -241,6 +259,14 @@ body{margin:0}
     <div class="menu-picks" id="catPicks"></div>
     <div><label class="lbl" for="dish" id="dishLbl">Details (optional)</label><input id="dish" type="text" maxlength="120" placeholder="e.g. a big pot, a 12-pack of Coke"></div>
     <div><label class="lbl" for="diet">Allergies or dietary needs <span style="text-transform:none;letter-spacing:0">(optional)</span></label><input id="diet" type="text" maxlength="80" placeholder="e.g. vegetarian, no nuts"></div>
+    <div class="step"><span class="num">3</span><h2>Secret Santa</h2></div>
+    <div class="santa-box">
+      <p class="sub">Want in? Everyone who joins draws one name and brings a small wrapped gift for that person. Nobody knows who has them until the gifts are opened. <span class="budget">🎁 Under $10</span></p>
+      <div class="picks"><label class="pick"><input type="checkbox" id="santa"><span>🎅 Count me in for Secret Santa</span></label></div>
+      <div id="wishWrap" hidden><label class="lbl" for="wish">Gift hints for whoever draws you <span style="text-transform:none;letter-spacing:0">(optional)</span></label><input id="wish" type="text" maxlength="120" placeholder="e.g. I love candles, tea and anything green"></div>
+      <span class="note" id="santaNote"></span>
+    </div>
+
     <div class="actions">
       <button class="btn" id="saveBtn" type="submit">Save my RSVP</button>
       <span class="note" id="saveNote" role="alert"></span>
@@ -290,6 +316,13 @@ body{margin:0}
       <label class="lbl">Message for the group chat</label>
       <pre class="msg" id="msg"></pre>
       <div class="actions"><button class="btn ghost" type="button" id="copyBtn">Copy message</button></div>
+    </div>
+    <div class="santa-host">
+      <h3>🎅 Secret Santa</h3>
+      <p class="sub" id="santaHostInfo"></p>
+      <p class="warn" id="santaStale" hidden>Someone joined or left Secret Santa after the draw. Redraw names so everyone has a match.</p>
+      <div class="actions"><button class="btn red" type="button" id="drawBtn">Draw names</button><span class="note" id="drawNote"></span></div>
+      <p class="note">Draw once most people have RSVP'd. Each person sees only their own match; you won't see who drew whom either.</p>
     </div>
     <p class="note">Tap × next to a guest's name to remove their RSVP.</p>
     <button class="linkbtn" type="button" id="logoutBtn" style="align-self:flex-start">Sign out of host mode</button>
@@ -384,8 +417,8 @@ function renderBoard(){
 function renderGuests(){
   const all=people();const yes=all.filter(p=>p.status==="yes");const maybe=all.filter(p=>p.status==="maybe");
   const heads=yes.reduce((a,p)=>a+(+p.party||1),0);
-  $("#stats").innerHTML=`<span><b>${yes.length}</b>coming</span><span><b>${heads}</b>plates to set</span><span><b>${maybe.length}</b>maybe</span>`;
-  $("#guests").innerHTML=all.length?all.map(p=>`<span class="g ${esc(p.status)}"><span class="dot">${esc((p.name||"?").trim().charAt(0).toUpperCase())}</span>${esc(p.name)}${(+p.party||1)>1?` <small style="color:var(--muted)">+${(+p.party)-1}</small>`:''}${p.diet&&S.hostPw?` <small style="color:var(--muted)">· ${esc(p.diet)}</small>`:''}${S.hostPw?`<button class="x" type="button" data-del="${esc(p.id)}" aria-label="Remove ${esc(p.name)}">×</button>`:''}</span>`).join("")
+  $("#stats").innerHTML=`<span><b>${yes.length}</b>coming</span><span><b>${heads}</b>plates to set</span><span><b>${maybe.length}</b>maybe</span><span><b>${S.cfg.santaCount||0}</b>in Secret Santa</span>`;
+  $("#guests").innerHTML=all.length?all.map(p=>`<span class="g ${esc(p.status)}"><span class="dot">${esc((p.name||"?").trim().charAt(0).toUpperCase())}</span>${esc(p.name)}${p.santa&&p.status!=="no"?' <span title="In Secret Santa" aria-label="in Secret Santa">🎁</span>':''}${(+p.party||1)>1?` <small style="color:var(--muted)">+${(+p.party)-1}</small>`:''}${p.diet&&S.hostPw?` <small style="color:var(--muted)">· ${esc(p.diet)}</small>`:''}${S.hostPw?`<button class="x" type="button" data-del="${esc(p.id)}" aria-label="Remove ${esc(p.name)}">×</button>`:''}</span>`).join("")
     :`<p class="sub">${S.loaded?"No RSVPs yet. Be the first name on the list.":"Loading the guest list…"}</p>`;
 }
 function eventStart(){return START;}
@@ -396,7 +429,7 @@ function renderFinal(){
   const box=$("#finalSlot");const f=!!S.cfg.final;
   if(!f){box.hidden=true;box.innerHTML="";box.dataset.sig="";return;}
   const mine=S.rsvps.get(S.myId);const brings=mine?bringing(mine):"";
-  const sig=JSON.stringify([S.cfg,mine&&mine.dish,mine&&mine.status,mine&&mine.items]);
+  const sig=JSON.stringify([S.cfg.final,S.cfg.address,S.cfg.note,S.cfg.dinner,S.cfg.updatedAt,mine&&mine.dish,mine&&mine.status,mine&&mine.items,mine&&mine.santa]);
   if(box.dataset.sig===sig)return;box.dataset.sig=sig;
   const start=START,end=END;
   let tz="";try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||""}catch(e){}
@@ -413,6 +446,7 @@ function renderFinal(){
     ${S.cfg.address?`<div class="where"><strong>Where</strong><br>${esc(S.cfg.address)}</div>`:""}
     ${S.cfg.note?`<div class="note where">${esc(S.cfg.note)}</div>`:""}
     ${mine&&mine.status!=="no"&&brings?`<div class="yours">You're bringing <strong>${esc(brings)}</strong></div>`:""}
+    ${mine&&mine.status!=="no"&&mine.santa?`<div class="yours">🎁 Plus your Secret Santa gift: under $10, wrapped.</div>`:""}
     ${mine&&mine.status==="no"?`<div class="yours">You said you can't make it. Changed your mind? Update your RSVP below.</div>`:""}
     ${!mine?`<div class="yours">Haven't RSVP'd yet? Fill in the form below.</div>`:""}
     <div class="actions" style="justify-content:center">
@@ -427,10 +461,17 @@ function renderFinal(){
     const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));a.download="christmas.ics";document.body.appendChild(a);a.click();a.remove();
   };
 }
+function renderHostSanta(){
+  const n=S.cfg.santaCount||0;const drawn=!!S.cfg.santaDrawnAt;
+  $("#santaHostInfo").textContent=drawn?`Names drawn ${new Date(S.cfg.santaDrawnAt).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}. ${n} ${n===1?"person":"people"} in.`:`${n} ${n===1?"person has":"people have"} joined so far. ${n>=3?"Ready to draw whenever you are.":"You need at least 3 to draw."}`;
+  $("#santaStale").hidden=!S.cfg.santaStale;
+  const b=$("#drawBtn");if(!b.dataset.confirm)b.textContent=drawn?"Redraw names":"Draw names";
+}
 function renderHost(){
   $("#loginCard").hidden=true;$("#hostCard").hidden=false;$("#hostLink").hidden=true;
   if(!S.hostPrefilled&&S.loaded){S.hostPrefilled=true;$("#hDinner").value=S.cfg.dinner||"";$("#hAddr").value=S.cfg.address||"";$("#hNote").value=S.cfg.note||"";}
   $("#sendBtn").textContent=S.cfg.final?"Update the invite":"Send the final invite";
+  renderHostSanta();
   $("#reopenBtn").hidden=!S.cfg.final;
   $("#msgWrap").hidden=!S.cfg.final;if(S.cfg.final)$("#msg").textContent=groupMsg();
 }
@@ -443,6 +484,7 @@ function groupMsg(){
   MENU.forEach(g=>g.items.forEach(it=>{const ps=by[it.id]||[];lines.push(`• ${it.label}: ${ps.length?ps.map(p=>p.name).join(", "):"still needed!"}`)}));
   att.filter(p=>(p.items||[]).includes("other")).forEach(p=>lines.push(`• ${p.dish||"Extra"}: ${p.name}`));
   lines.push("","🌱 Reminder: everything is vegan. It's fasting season.");
+  lines.push(S.cfg.santaDrawnAt?"🎅 Secret Santa names are drawn! Open the site to see who you're buying for. Under $10, wrapped.":"🎅 Secret Santa (under $10): tick the box on the site to join.");
   lines.push("",`Full invite + RSVP: ${location.origin}`);
   return lines.join("\n");
 }
@@ -461,11 +503,41 @@ function copy(text,el,ok){
 }
 
 /* ---------- load + poll ---------- */
+/* ---------- Secret Santa (only this guest's own match, fetched with their secret) ---------- */
+async function loadSanta(){
+  try{S.santaInfo=await api("/api/santa",{id:S.myId,secret:S.secret});S.santaFor=S.cfg.santaDrawnAt||0;
+    if(!S.wishPrefilled&&!S.dirty){S.wishPrefilled=true;$("#wish").value=S.santaInfo.wish||"";}
+    renderSanta();}catch(e){}
+}
+function renderSanta(){
+  const card=$("#santaCard"),body=$("#santaBody");const mine=S.rsvps.get(S.myId);const info=S.santaInfo;
+  const inIt=mine&&mine.santa&&mine.status!=="no";
+  // RSVP form note
+  $("#santaNote").textContent=!S.cfg.santaDrawnAt?"":!inIt?"Names have already been drawn. If you join now, the host will redraw so you get a match.":info&&info.match?"Names are drawn. Your match is at the top of the page.":"Names were drawn before you joined. The host will redraw so you get a match.";
+  if(!inIt){card.hidden=true;return;}
+  card.hidden=false;
+  if(!S.cfg.santaDrawnAt){body.innerHTML=`<p class="sub">You're in! Names haven't been drawn yet. Check back here once the host draws them. ${S.cfg.santaCount?`(${S.cfg.santaCount} ${S.cfg.santaCount===1?"person":"people"} in so far)`:""}</p>`;body.dataset.k="wait";return;}
+  if(!info||!info.match){body.innerHTML=`<p class="sub">Names were drawn before you joined. Hang tight: the host will redraw so you get a match too.</p>`;body.dataset.k="none";return;}
+  const k="m:"+info.match.name+"|"+info.match.wish;if(body.dataset.k===k||body.dataset.k==="hidden:"+k)return;
+  body.dataset.k="hidden:"+k;
+  body.innerHTML=`<p class="sub">Make sure nobody's looking over your shoulder.</p><div class="actions"><button class="btn" type="button" id="revealBtn">Reveal my match</button></div>`;
+  $("#revealBtn").onclick=()=>{body.dataset.k=k;
+    body.innerHTML=`<p class="sub" style="margin-bottom:4px">You're buying a gift for</p><div class="who"></div>
+      ${info.match.wish?`<div class="hints"><strong>Their hints:</strong> <span class="wishtxt"></span></div>`:`<p class="sub">They didn't leave any hints. Surprise them!</p>`}
+      <p class="note">Keep it secret, keep it under $10, and bring it wrapped on Dec 26. 🤫</p>
+      <button class="linkbtn" type="button" id="hideBtn" style="align-self:flex-start">Hide</button>`;
+    body.querySelector(".who").textContent=info.match.name;const w=body.querySelector(".wishtxt");if(w)w.textContent=info.match.wish;
+    $("#hideBtn").onclick=()=>{body.dataset.k="";renderSanta();};
+    const r=body.querySelector(".who").getBoundingClientRect();burst(r.left+r.width/2,r.top);};
+}
+function syncSantaFields(){$("#wishWrap").hidden=!$("#santa").checked;}
+
 function applyState(st){
     S.cfg=st.event||{};S.rsvps=new Map((st.rsvps||[]).map(r=>[r.id,r]));S.loaded=true;banner("");
     const mine=S.rsvps.get(S.myId);
     if(mine){$("#editLink").hidden=false;$("#editUrl").textContent=editUrl();}
     if(!S.prefilled&&!S.dirty&&mine){S.prefilled=true;prefill(mine);}
+    if(mine&&(!S.santaInfo||S.santaFor!==(S.cfg.santaDrawnAt||0)||S.santaJoined!==(mine.santa&&mine.status!=="no"))){S.santaJoined=mine.santa&&mine.status!=="no";loadSanta();}else renderSanta();
     renderAll();
 }
 async function load(){
@@ -484,8 +556,10 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 
 /* ---------- form ---------- */
 $("#rsvp").addEventListener("input",()=>S.dirty=true);
+$("#santa").addEventListener("change",syncSantaFields);
 $("#rsvp").addEventListener("change",e=>{S.dirty=true;if(e.target.name==="item"){const id=e.target.id;S.pendingItems=[...checkedItems()];renderCatPicks();document.getElementById(id)?.focus({preventScroll:true});}});
 function prefill(d){
+  $("#santa").checked=!!d.santa;syncSantaFields();
   $("#name").value=d.name||"";$("#party").value=String(d.party||1);
   const st=document.querySelector(`input[name=status][value="${d.status}"]`);if(st)st.checked=true;
   S.pendingItems=d.items||[];document.querySelectorAll('input[name=item]').forEach(i=>i.checked=S.pendingItems.includes(i.value));$("#dish").value=d.dish||"";$("#diet").value=d.diet||"";$("#saveBtn").textContent="Update my RSVP";
@@ -501,7 +575,7 @@ $("#rsvp").addEventListener("submit",async e=>{
   if(status!=="no"&&items.includes("other")&&!dish){note.textContent="Tell us what else you're bringing.";$("#dish").focus();return}
   note.textContent="";const btn=$("#saveBtn");btn.disabled=true;btn.textContent="Saving…";
   try{
-    await write("/api/rsvp",{id:S.myId,secret:S.secret,name,status,party:+$("#party").value||1,items,dish,diet:$("#diet").value.trim()});
+    await write("/api/rsvp",{id:S.myId,secret:S.secret,name,status,party:+$("#party").value||1,items,dish,diet:$("#diet").value.trim(),santa:status!=="no"&&$("#santa").checked,wish:$("#wish").value.trim()});
     S.dirty=false;S.prefilled=true;$("#saveBtn").textContent="Update my RSVP";
     toast(status==="yes"?"You're on the list. See you on the 26th!":status==="maybe"?"Saved as a maybe. Let us know soon!":"Got it. We'll miss you!");
     if(status!=="no"){const r=btn.getBoundingClientRect();burst(r.left+r.width/2,r.top);}
@@ -529,6 +603,15 @@ $("#sendBtn").addEventListener("click",async()=>{
   const b=$("#sendBtn");b.disabled=true;b.textContent="Sending…";
   try{await saveCfg({final:true});toast("Invite sent. Everyone sees it at the top of the page.");window.scrollTo({top:0,behavior:"smooth"});burst(innerWidth/2,120);}
   catch(e){toast(e.message);}finally{b.disabled=false;renderHost();}
+});
+$("#drawBtn").addEventListener("click",async()=>{
+  const b=$("#drawBtn");
+  // A redraw gives everyone a new match, so ask for a second tap first.
+  if(S.cfg.santaDrawnAt&&!b.dataset.confirm){b.dataset.confirm="1";b.textContent="Tap again to redraw for everyone";$("#drawNote").textContent="Everyone will get a new match.";
+    setTimeout(()=>{delete b.dataset.confirm;$("#drawNote").textContent="";renderHostSanta();},5000);return;}
+  delete b.dataset.confirm;b.disabled=true;b.textContent="Drawing…";$("#drawNote").textContent="";
+  try{await write("/api/event",{password:S.hostPw,action:"drawSanta"});toast("Names drawn! Everyone in can now reveal their match.");const r=b.getBoundingClientRect();burst(r.left+r.width/2,r.top);}
+  catch(e){$("#drawNote").textContent=e.message;}finally{b.disabled=false;renderHostSanta();}
 });
 $("#reopenBtn").addEventListener("click",async()=>{try{await saveCfg({final:false});toast("The invite is hidden again. Send it when you're ready.")}catch(e){toast(e.message)}});
 $("#copyBtn").addEventListener("click",()=>copy($("#msg").textContent,$("#msg"),"Copied. Paste it in the group chat!"));

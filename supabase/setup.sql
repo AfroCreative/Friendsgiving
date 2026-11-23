@@ -25,6 +25,12 @@ create table if not exists public.fg_event (
   updated_at timestamptz not null default now()
 );
 
+-- Secret Santa (added later; safe to run again on an existing database).
+alter table public.fg_rsvps add column if not exists santa    boolean not null default false;  -- joined Secret Santa
+alter table public.fg_rsvps add column if not exists wish     text    not null default '';     -- gift hints for their Secret Santa
+alter table public.fg_rsvps add column if not exists santa_to text    not null default '';     -- id of the guest they're buying for
+alter table public.fg_event add column if not exists santa_drawn_at timestamptz;              -- when the host drew names
+
 -- Lock both tables to the website's server. With row level security on and no policies,
 -- the public (anon) key can't read or write them; the server uses the service role key.
 alter table public.fg_rsvps enable row level security;

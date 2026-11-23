@@ -37,7 +37,13 @@ export default route(async (req, res) => {
   if (going && !items.length) throw new HttpError(400, "Choose at least one thing to bring.");
   if (items.includes("other") && !str(b.dish, 120)) throw new HttpError(400, "Tell us what else you're bringing.");
 
+  // Secret Santa: joining or leaving after the draw is allowed; the host sees that a redraw is needed.
+  const santa = going && Boolean(b.santa);
+  const wish = santa ? str(b.wish, 120) : "";
+
   const record = {
+    santa, wish,
+    santaTo: santa ? existing?.santaTo || "" : "",
     name, status, times, items,
     party: Math.min(5, Math.max(1, parseInt(b.party, 10) || 1)),
     dish: going ? str(b.dish, 120) : "",

@@ -52,6 +52,9 @@ async function sb(path, { method = "GET", body, prefer } = {}) {
   if (!r.ok) {
     const code = j?.code || "";
     const msg = j?.message || text || r.statusText;
+    if (code === "PGRST204" || /could not find the '.*' column/i.test(msg)) {
+      throw new HttpError(503, "The database needs the Secret Santa update. Run the latest supabase/setup.sql in Supabase's SQL Editor.");
+    }
     if (code === "PGRST205" || code === "42P01" || /could not find the table|does not exist/i.test(msg)) {
       throw new HttpError(503, "The database tables aren't set up yet. Run supabase/setup.sql in Supabase's SQL Editor.");
     }
@@ -78,11 +81,14 @@ function rowToRsvp(r) {
     createdAt: ms(r.created_at),
     updatedAt: ms(r.updated_at),
     secretHash: r.secret_hash || "",
+    santa: !!r.santa,          // joined Secret Santa
+    wish: r.wish || "",        // gift hints, shown only to whoever draws this guest
+    santaTo: r.santa_to || "", // id of the guest they're buying for (never sent to other browsers)
   };
 }
 function rowToEvent(r) {
   if (!r) return {};
-  return { time: r.time || "13", dinner: r.dinner || "", address: r.address || "", note: r.note || "", final: !!r.final, updatedAt: ms(r.updated_at) };
+  return { time: r.time || "17", dinner: r.dinner || "", address: r.address || "", note: r.note || "", final: !!r.final, updatedAt: ms(r.updated_at), santaDrawnAt: ms(r.santa_drawn_at) };
 }
 
 /* ---------- store API used by the routes ---------- */
@@ -97,16 +103,22 @@ export async function loadAll() {
   return { rsvps, event: rowToEvent(ev[0]) };
 }
 
+const rsvpRow = (id, r) => ({
+  id, name: r.name, status: r.status, party: r.party, times: r.times || [], cat: (r.items || []).join(","), dish: r.dish, diet: r.diet,
+  secret_hash: r.secretHash, created_at: isoOf(r.createdAt), updated_at: isoOf(r.updatedAt),
+  santa: !!r.santa, wish: r.wish || "", santa_to: r.santaTo || "",
+});
+
 export async function putRsvp(id, r) {
-  const j = await sb("fg_rsvps?on_conflict=id", {
-    method: "POST",
-    prefer: "resolution=merge-duplicates,return=minimal",
-    body: {
-      id, name: r.name, status: r.status, party: r.party, times: r.times, cat: (r.items || []).join(","), dish: r.dish, diet: r.diet,
-      secret_hash: r.secretHash, created_at: isoOf(r.createdAt), updated_at: isoOf(r.updatedAt),
-    },
-  });
+  const j = await sb("fg_rsvps?on_conflict=id", { method: "POST", prefer: "resolution=merge-duplicates,return=minimal", body: rsvpRow(id, r) });
   if (!j) mem.rsvps.set(id, r);
+}
+
+// Save many RSVPs in one request (used by the Secret Santa draw).
+export async function putRsvps(entries) {
+  if (!entries.length) return;
+  const j = await sb("fg_rsvps?on_conflict=id", { method: "POST", prefer: "resolution=merge-duplicates,return=minimal", body: entries.map(([id, r]) => rsvpRow(id, r)) });
+  if (!j) for (const [id, r] of entries) mem.rsvps.set(id, r);
 }
 
 export async function deleteRsvp(id) {
@@ -118,15 +130,29 @@ export async function putEvent(e) {
   const j = await sb("fg_event?on_conflict=id", {
     method: "POST",
     prefer: "resolution=merge-duplicates,return=minimal",
-    body: { id: 1, time: e.time, dinner: e.dinner, address: e.address, note: e.note, final: e.final, updated_at: isoOf(e.updatedAt) },
+    body: { id: 1, time: e.time, dinner: e.dinner, address: e.address, note: e.note, final: e.final, updated_at: isoOf(e.updatedAt),
+      santa_drawn_at: e.santaDrawnAt ? isoOf(e.santaDrawnAt) : null },
   });
   if (!j) mem.event = { ...e };
 }
 
+// Who's in the Secret Santa: guests coming (or maybe) who ticked the box.
+export const santaPeople = (rsvps) => Object.entries(rsvps).filter(([, r]) => r.santa && r.status !== "no");
+
+// After the draw, someone may join, leave or be removed. Then the circle is broken and the host should redraw.
+function santaIsStale(rsvps, event) {
+  if (!event.santaDrawnAt) return false;
+  const people = santaPeople(rsvps);
+  const ids = new Set(people.map(([id]) => id));
+  const gets = new Set(people.map(([, r]) => r.santaTo));
+  return people.some(([id, r]) => !ids.has(r.santaTo) || r.santaTo === id || !gets.has(id));
+}
+
 export function publicState({ rsvps, event }) {
   return {
-    event,
-    rsvps: Object.entries(rsvps).map(([id, { secretHash, ...rest }]) => ({ id, ...rest })),
+    event: { ...event, santaCount: santaPeople(rsvps).length, santaStale: santaIsStale(rsvps, event) },
+    // Never send edit keys, Secret Santa matches or gift hints to the browser in the shared state.
+    rsvps: Object.entries(rsvps).map(([id, { secretHash, santaTo, wish, ...rest }]) => ({ id, ...rest })),
   };
 }
 
